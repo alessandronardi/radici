@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radici - Simulatore Botanico Zen</title>
+    <title>Radici - Simulatore botanico zen in tempo reale</title>
     <!-- Tailwind CSS per l'interfaccia UI -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js per il rendering 3D -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Lucide Icons per icone minimali ed eleganti -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Configurazione e Motore Grafico Specie Botaniche -->
+    <!-- Configurazione e motore grafico specie botaniche -->
     <script src="species.js"></script>
 
     <!-- Three.js Post-processing & SSAO -->
@@ -58,39 +58,35 @@
         .glass-panel {
             background: rgba(15, 20, 18, 0.85) !important;
             border: 1px solid rgba(138, 154, 134, 0.2) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
         }
 
-        #drawer, #erbario-detail-panel, #sowing-modal > div, #farewell-modal > div {
-            background: rgba(15, 20, 18, 0.85) !important;
-            border: 1px solid rgba(138, 154, 134, 0.2) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            border-radius: 0px !important;
+        #drawer, #erbario-detail-panel, #sowing-modal > div, #farewell-modal > div, #offline-modal > div, #letter-modal > div, #delete-confirm-modal > div {
+            background: rgba(13, 17, 16, 0.92) !important;
+            border: 1px solid rgba(138, 154, 134, 0.22) !important;
+            backdrop-filter: blur(18px) !important;
+            -webkit-backdrop-filter: blur(18px) !important;
         }
 
-        /* Buttons style: brutalist minimal */
+        /* Pulsanti minimalisti */
         button, .glass-button {
-            border-radius: 0px !important; /* 90° sharp corners */
-            border: 1px solid rgba(255, 255, 255, 0.15) !important;
-            letter-spacing: 0.15em !important;
-            text-transform: uppercase !important;
-            background: rgba(255, 255, 255, 0.02) !important;
-            transition: all 0.3s ease !important;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            letter-spacing: 0.08em;
+            background: rgba(255, 255, 255, 0.03);
+            transition: all 0.25s ease;
         }
 
         button:hover, .glass-button:hover {
-            border-color: #8A9A86 !important;
-            background: rgba(138, 154, 134, 0.08) !important;
-            color: #8A9A86 !important;
-            box-shadow: none !important;
+            border-color: rgba(52, 211, 153, 0.4);
+            background: rgba(52, 211, 153, 0.08);
+            color: #6ee7b7;
         }
 
         button:active, button.active, .active-btn {
-            border-color: #C5A059 !important;
-            background: rgba(197, 160, 89, 0.1) !important;
-            color: #C5A059 !important;
+            border-color: #34d399 !important;
+            background: rgba(52, 211, 153, 0.15) !important;
+            color: #34d399 !important;
         }
 
         /* Slider stile iOS/Minimal */
@@ -109,7 +105,7 @@
             transform: scale(1.2);
         }
         
-        /* Drag helper indicator */
+        /* Hint di trascinamento */
         .drag-hint {
             animation: pulseDrag 2.5s infinite;
         }
@@ -117,81 +113,112 @@
             0%, 100% { opacity: 0.3; transform: translateX(-50%) translateY(0); }
             50% { opacity: 0.7; transform: translateX(-50%) translateY(-5px); }
         }
+
+        /* Cerchio guida di respirazione zen 4-7-8 */
+        .breath-guide-circle {
+            transition: transform 0.1s linear, border-color 0.5s ease;
+        }
     </style>
 </head>
 <body class="text-slate-100 h-screen w-screen relative select-none">
 
-    <!-- CANVAS THREE.JS PRINCIPALE -->
-    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing"></div>
+    <!-- Canvas Three.js principale -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing" role="region" aria-label="Vista 3D interattiva del giardino zen"></div>
 
-    <!-- HINT DI ROTAZIONE VASO (DISCRETO) -->
+    <!-- Hint di rotazione vaso e controlli -->
     <div id="drag-helper" class="drag-hint absolute bottom-28 left-1/2 -translate-x-1/2 pointer-events-none text-center z-10 opacity-0 transition-opacity duration-1000">
-        <span class="text-[9px] tracking-widest text-slate-500 uppercase flex items-center gap-1.5 justify-center">
-            <i data-lucide="move-horizontal" class="w-3.5 h-3.5"></i> Trascina per ruotare · Scorri per zoomare
+        <span class="text-[9px] tracking-widest text-slate-400 uppercase flex items-center gap-1.5 justify-center">
+            <i data-lucide="move-horizontal" class="w-3.5 h-3.5"></i> Trascina per ruotare · Scorri per zoomare · [Spazio] per innaffiare
         </span>
     </div>
 
-    <!-- Sfumatura atmosferica superiore ed inferiore per contrasto 3D -->
-    <div class="absolute inset-0 bg-gradient-to-b from-[#080a0f] via-transparent to-[#080a0f] opacity-60 pointer-events-none z-10"></div>
+    <!-- Sfumatura atmosferica superiore ed inferiore -->
+    <div id="sky-gradient-overlay" class="absolute inset-0 bg-gradient-to-b from-[#080a0f] via-transparent to-[#080a0f] opacity-60 pointer-events-none z-10 transition-colors duration-1000"></div>
 
-    <!-- SCHERMATA DI INTRO / LOGO INIZIALE -->
+    <!-- Schermata di intro iniziale -->
     <div id="intro-screen" class="absolute inset-0 bg-[#080a0f] z-50 flex flex-col items-center justify-center transition-opacity duration-1000">
-        <div class="text-center space-y-6">
+        <div class="text-center space-y-6 max-w-sm px-6">
             <span class="text-6xl animate-pulse inline-block">🌿</span>
-            <h1 class="text-4xl font-light tracking-widest text-emerald-400">RADICI</h1>
-            <p class="text-[10px] text-slate-400 tracking-widest uppercase">Simulatore Botanico Zen in Tempo Reale</p>
+            <h1 class="text-4xl font-light tracking-widest text-emerald-400">Radici</h1>
+            <p class="text-xs text-slate-400 tracking-wider">Simulatore botanico zen in tempo reale</p>
             <div class="w-16 h-[1px] bg-emerald-500/20 mx-auto my-4"></div>
-            <button onclick="startApp()" class="px-8 py-3 bg-emerald-500/5 hover:bg-emerald-500/15 border border-emerald-500/20 rounded-full text-xs tracking-widest text-emerald-300 transition-all duration-500 hover:scale-105">
-                ENTRA NEL GIARDINO
+            <button onclick="startApp()" class="w-full py-3.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-xs tracking-widest text-emerald-300 transition-all duration-300">
+                Entra nel giardino
             </button>
         </div>
     </div>
 
-    <!-- INTERFACCIA PRINCIPALE (UI GHOST - MINIMALE) -->
+    <!-- Interfaccia principale minimale -->
     <div id="main-ui" class="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-6 opacity-0 transition-opacity duration-700">
         
-        <!-- HEADER -->
+        <!-- Header -->
         <header class="flex justify-between items-start w-full">
             <div class="pointer-events-auto">
                 <h1 class="text-xl font-light tracking-widest text-emerald-400 flex items-center gap-2">
-                    <span>🌿</span> RADICI
+                    <span>🌿</span> Radici
                 </h1>
-                <p id="time-display" class="text-[10px] text-slate-400 tracking-wider mt-1 uppercase">Sincronizzazione ritmi circadiani...</p>
+                <!-- Pillola indicatore ritmo circadiano interattivo -->
+                <button onclick="cycleCircadianMode()" id="time-display-btn" class="mt-1 px-2.5 py-1 rounded-full text-[10px] text-slate-300 border border-slate-800 bg-slate-950/60 hover:border-emerald-500/40 flex items-center gap-1.5 transition-all cursor-pointer" title="Fai clic per esplorare le fasi del giorno o tornare all'ora reale">
+                    <span id="circadian-icon">☀️</span>
+                    <span id="time-display">Sincronizzazione ritmi circadiani...</span>
+                </button>
             </div>
             
-            <!-- Icone di Navigazione in Alto a Destra -->
-            <div class="flex gap-4 pointer-events-auto">
-                <button onclick="toggleDrawer()" class="p-3 glass-button rounded-full text-slate-300 flex items-center justify-center relative group" title="Dettagli Pianta">
-                    <i data-lucide="info" class="w-4 h-4"></i>
-                    <span class="absolute right-12 scale-0 group-hover:scale-100 bg-slate-950 text-[10px] py-1.5 px-3 rounded-xl border border-slate-800 transition-all text-emerald-400 tracking-wider">DETTAGLI</span>
-                </button>
-                <button onclick="toggleErbario()" class="p-3 glass-button rounded-full text-slate-300 flex items-center justify-center relative group" title="Erbario Virtuale">
-                    <i data-lucide="book-open" class="w-4 h-4"></i>
-                    <span class="absolute right-12 scale-0 group-hover:scale-100 bg-slate-950 text-[10px] py-1.5 px-3 rounded-xl border border-slate-800 transition-all text-emerald-400 tracking-wider">ERBARIO</span>
+            <!-- Barra di navigazione in alto a destra -->
+            <div class="flex gap-2.5 pointer-events-auto">
+                <!-- Modalità respiro (4-7-8) -->
+                <button onclick="toggleBreathingMode()" id="btn-breathing" class="p-3 glass-button rounded-2xl text-slate-300 flex items-center justify-center relative group" title="Modalità respiro zen (tasto B)" aria-label="Attiva modalità respiro zen">
+                    <i data-lucide="wind" class="w-4 h-4"></i>
+                    <span class="absolute top-12 right-0 scale-0 group-hover:scale-100 bg-slate-950 text-[9px] py-1 px-2.5 rounded-xl border border-slate-800 transition-all text-emerald-300 whitespace-nowrap">Respiro zen</span>
                 </button>
 
+                <!-- Vista sotto terra (apparato radicale) -->
+                <button onclick="toggleRootView()" id="btn-roots" class="p-3 glass-button rounded-2xl text-slate-300 flex items-center justify-center relative group" title="Vista sotto terra (tasto R)" aria-label="Attiva vista apparato radicale">
+                    <i data-lucide="git-branch" class="w-4 h-4"></i>
+                    <span class="absolute top-12 right-0 scale-0 group-hover:scale-100 bg-slate-950 text-[9px] py-1 px-2.5 rounded-xl border border-slate-800 transition-all text-emerald-300 whitespace-nowrap">Sotto terra</span>
+                </button>
+
+                <!-- Dettagli pianta -->
+                <button onclick="toggleDrawer()" class="p-3 glass-button rounded-2xl text-slate-300 flex items-center justify-center relative group" title="Dettagli e cura pianta" aria-label="Apri pannello dettagli">
+                    <i data-lucide="info" class="w-4 h-4"></i>
+                    <span class="absolute top-12 right-0 scale-0 group-hover:scale-100 bg-slate-950 text-[9px] py-1 px-2.5 rounded-xl border border-slate-800 transition-all text-emerald-300 whitespace-nowrap">Dettagli</span>
+                </button>
+
+                <!-- Erbario -->
+                <button onclick="toggleErbario()" class="p-3 glass-button rounded-2xl text-slate-300 flex items-center justify-center relative group" title="Erbario virtuale" aria-label="Apri erbario virtuale">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span class="absolute top-12 right-0 scale-0 group-hover:scale-100 bg-slate-950 text-[9px] py-1 px-2.5 rounded-xl border border-slate-800 transition-all text-emerald-300 whitespace-nowrap">Erbario</span>
+                </button>
             </div>
         </header>
 
-        <!-- NOTIFICHE EMPATICHE SULLO STATO DELLA PIANTA -->
-        <div class="absolute top-24 left-1/2 -translate-x-1/2 pointer-events-none text-center z-30">
-            <div id="empathy-toast" class="bg-slate-950/95 border border-emerald-500/10 px-5 py-3 rounded-full backdrop-blur-xl shadow-2xl opacity-0 transform -translate-y-4 transition-all duration-700 flex items-center gap-2">
-                <span class="text-xs text-emerald-400 font-medium" id="toast-text">Selene ti stava aspettando.</span>
+        <!-- Notifiche empatiche sullo stato della pianta -->
+        <div class="absolute top-20 left-1/2 -translate-x-1/2 pointer-events-none text-center z-30">
+            <div id="empathy-toast" class="bg-slate-950/95 border border-emerald-500/20 px-5 py-3 rounded-full backdrop-blur-xl shadow-2xl opacity-0 transform -translate-y-4 transition-all duration-500 flex items-center gap-2">
+                <span class="text-xs text-emerald-400 font-medium" id="toast-text">La pianta ti stava aspettando.</span>
             </div>
         </div>
 
-        <!-- NOTA SOTTOPIEDE / SELEZIONE VASO -->
+        <!-- Overlay guida di respirazione zen (4-7-8) -->
+        <div id="breathing-guide" class="hidden absolute bottom-32 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-3 z-30">
+            <div id="breath-circle" class="breath-guide-circle w-24 h-24 rounded-full border-2 border-emerald-400/50 bg-emerald-500/10 flex items-center justify-center shadow-lg shadow-emerald-500/10">
+                <span id="breath-phase-text" class="text-[11px] font-medium text-emerald-300 tracking-wider text-center">Inspira</span>
+            </div>
+            <p id="breath-hint-text" class="text-[9px] text-slate-400 tracking-widest uppercase">Segui il ritmo e respira con la pianta</p>
+        </div>
+
+        <!-- Footer / Controlli luce e selezione vasi -->
         <footer class="flex flex-col md:flex-row justify-between items-center gap-4 w-full">
-            <!-- Regolazione Sorgente Luminosa -->
+            <!-- Regolazione sorgente luminosa zenitale -->
             <div class="glass-panel p-4 rounded-2xl pointer-events-auto flex flex-col gap-2 w-72">
                 <div class="flex justify-between text-[9px] tracking-widest text-slate-400 font-semibold">
-                    <span>FASCIO DI LUCE ZENITALE</span>
+                    <span>Fascio di luce zenitale</span>
                     <span id="light-val">80%</span>
                 </div>
-                <input id="light-slider" type="range" min="0" max="150" value="80" class="w-full accent-emerald-400 bg-slate-850 h-1 rounded-lg appearance-none cursor-pointer">
+                <input id="light-slider" type="range" min="0" max="150" value="80" class="w-full accent-emerald-400 bg-slate-850 h-1 rounded-lg appearance-none cursor-pointer" aria-label="Intensità luce zenitale">
             </div>
 
-            <!-- Selettori Vasi Attivi -->
+            <!-- Selettori vasi attivi -->
             <div class="flex gap-4 pointer-events-auto">
                 <div id="pot-selectors-container" class="flex gap-2">
                     <!-- Generato dinamicamente in JS -->
@@ -200,80 +227,83 @@
         </footer>
     </div>
 
-    <!-- DRAWER LATERALE A SCOMPARSA (GLASSMORPHIC) -->
-    <div id="drawer" class="absolute top-0 right-0 h-full w-[360px] md:w-[400px] bg-slate-950/80 border-l border-slate-900/50 backdrop-blur-2xl z-30 transform translate-x-full transition-transform duration-500 flex flex-col shadow-2xl">
-        <!-- Header Drawer -->
-        <div class="p-6 border-b border-slate-900/40 flex justify-between items-center">
+    <!-- Drawer laterale a scomparsa per monitoraggio e cura -->
+    <div id="drawer" class="absolute top-0 right-0 h-full w-[360px] md:w-[420px] bg-slate-950/90 border-l border-slate-800/60 backdrop-blur-2xl z-30 transform translate-x-full transition-transform duration-500 flex flex-col shadow-2xl">
+        <!-- Header drawer -->
+        <div class="p-6 border-b border-slate-800/40 flex justify-between items-center">
             <div>
                 <h2 id="drawer-plant-name" class="text-2xl font-light text-slate-100 tracking-wide">Nome</h2>
-                <p id="drawer-plant-specie" class="text-[10px] text-emerald-400 tracking-widest uppercase mt-1">Orchidea di Luna</p>
+                <p id="drawer-plant-specie" class="text-[10px] text-emerald-400 tracking-widest uppercase mt-1">Specie</p>
             </div>
-            <button onclick="closeDrawer()" class="p-2 text-slate-400 hover:text-slate-100 transition-colors">
+            <button onclick="closeDrawer()" class="p-2 text-slate-400 hover:text-slate-100 transition-colors rounded-xl" aria-label="Chiudi pannello">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
 
-        <!-- Tabs Navigation -->
-        <div class="flex border-b border-slate-900 bg-slate-950/20">
-            <button onclick="switchTab('tab-monitor')" id="btn-tab-monitor" class="flex-1 py-3 text-xs tracking-wider border-b-2 border-emerald-400 text-emerald-400 font-medium transition-all">MONITORAGGIO</button>
-            <button onclick="switchTab('tab-bio')" id="btn-tab-bio" class="flex-1 py-3 text-xs tracking-wider border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">PROFILO BOTANICO</button>
+        <!-- Navigazione schede -->
+        <div class="flex border-b border-slate-800/60 bg-slate-950/40">
+            <button onclick="switchTab('tab-monitor')" id="btn-tab-monitor" class="flex-1 py-3 text-xs tracking-wider border-b-2 border-emerald-400 text-emerald-400 font-medium transition-all">Monitoraggio</button>
+            <button onclick="switchTab('tab-bio')" id="btn-tab-bio" class="flex-1 py-3 text-xs tracking-wider border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">Profilo botanico</button>
         </div>
 
-        <!-- Contenuto Tabs -->
+        <!-- Contenuto schede -->
         <div class="flex-1 overflow-y-auto p-6 space-y-6">
-            <!-- TAB: MONITORAGGIO -->
+            <!-- Scheda: monitoraggio -->
             <div id="tab-monitor" class="space-y-6">
-                <!-- Stato Principale -->
-                <div class="bg-slate-900/20 border border-slate-800/40 rounded-2xl p-4 flex justify-between items-center">
+                <!-- Stato biologico principale -->
+                <div class="bg-slate-900/30 border border-slate-800/50 rounded-2xl p-4 flex justify-between items-center">
                     <div>
-                        <span class="text-[9px] text-slate-400 tracking-wider block">STATO BIOLOGICO</span>
-                        <span id="plant-stage-label" class="text-sm text-emerald-300 font-medium mt-1 inline-block">Fase Vegetativa</span>
+                        <span class="text-[9px] text-slate-400 tracking-wider block">Stato biologico</span>
+                        <span id="plant-stage-label" class="text-sm text-emerald-300 font-medium mt-1 inline-block">Fase vegetativa</span>
                     </div>
                     <div class="text-right">
-                        <span class="text-[9px] text-slate-400 tracking-wider block">CRESCITA COMPLESSIVA</span>
+                        <span class="text-[9px] text-slate-400 tracking-wider block">Crescita complessiva</span>
                         <span id="plant-growth-label" class="text-xl font-light text-slate-100">45%</span>
                     </div>
                 </div>
 
-                <!-- Risorse (Idratazione) -->
+                <!-- Idratazione terreno -->
                 <div class="space-y-2">
                     <div class="flex justify-between text-[10px] tracking-wider text-slate-400">
-                        <span>UMIDITÀ DEL TERRENO (IDRATAZIONE)</span>
+                        <span>Umidità del terreno (idratazione)</span>
                         <span id="hydration-val" class="font-medium text-blue-400">82%</span>
                     </div>
-                    <div class="w-full bg-slate-900/60 h-2.5 rounded-full overflow-hidden border border-slate-800/30">
-                        <div id="hydration-bar" class="h-full bg-gradient-to-r from-blue-500 to-sky-400 transition-all duration-500" style="width: 82%;"></div>
+                    <div class="w-full bg-slate-900/60 h-2.5 rounded-full overflow-hidden border border-slate-800/40">
+                        <div id="hydration-bar" class="h-full bg-gradient-to-r from-blue-500 to-sky-400 transition-all duration-300" style="width: 82%;"></div>
                     </div>
                     <p id="hydration-advice" class="text-[10px] text-slate-400 italic mt-1">Il terreno è fresco e umido al punto giusto.</p>
                 </div>
 
-                <!-- Fotosintesi Effettiva -->
+                <!-- Fotosintesi attuale -->
                 <div class="space-y-1">
-                    <span class="text-[10px] text-slate-400 tracking-wider block">EFFICIENZA FOTOSINTESI ATTUALE</span>
+                    <span class="text-[10px] text-slate-400 tracking-wider block">Efficienza fotosintesi</span>
                     <div class="flex items-center gap-3">
-                        <div class="flex-1 bg-slate-900/60 h-1.5 rounded-full overflow-hidden border border-slate-850">
+                        <div class="flex-1 bg-slate-900/60 h-1.5 rounded-full overflow-hidden border border-slate-800">
                             <div id="photo-efficiency-bar" class="h-full bg-emerald-400 transition-all duration-300" style="width: 95%;"></div>
                         </div>
                         <span id="photo-efficiency-val" class="text-xs text-emerald-400 font-medium">95%</span>
                     </div>
                 </div>
 
-                <!-- Azioni di Cura -->
-                <div class="pt-4 border-t border-slate-900/60 space-y-3">
-                    <button onclick="waterActivePlant()" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white rounded-xl text-xs tracking-widest font-semibold shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 transition-all active:scale-95">
-                        <i data-lucide="droplet" class="w-4 h-4"></i> INNAFFIA IL VASO
-                    </button>
+                <!-- Gesto di annaffiatura (pressione prolungata o clic) -->
+                <div class="pt-4 border-t border-slate-800/60 space-y-3">
+                    <div class="flex flex-col gap-1.5">
+                        <button id="water-button" class="w-full py-4 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white rounded-2xl text-xs tracking-widest font-semibold shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer">
+                            <i data-lucide="droplet" class="w-4 h-4"></i> Innaffia il vaso
+                        </button>
+                        <p class="text-[9px] text-slate-400 text-center italic">Tieni premuto per versare con continuità o premi [Spazio]</p>
+                    </div>
                 </div>
 
-                <!-- Bottone Payoff Fine Ciclo -->
-                <div id="completion-action-container" class="hidden pt-4 border-t border-emerald-900/20">
-                    <button onclick="openFarewellModal()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-xl text-xs tracking-widest font-bold shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all">
-                        <i data-lucide="flower" class="w-4 h-4"></i> COMPLETA IL CICLO DI VITA
+                <!-- Azione completamento ciclo (visibile solo se matura o fiorita) -->
+                <div id="completion-action-container" class="hidden pt-4 border-t border-emerald-900/30">
+                    <button onclick="openFarewellModal()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-2xl text-xs tracking-widest font-bold shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all">
+                        <i data-lucide="flower" class="w-4 h-4"></i> Completa il ciclo di vita
                     </button>
                 </div>
             </div>
 
-            <!-- TAB: BIOLOGIA SPECIE -->
+            <!-- Scheda: biologia specie -->
             <div id="tab-bio" class="hidden space-y-6">
                 <div class="space-y-4">
                     <div class="border-l-2 border-emerald-400 pl-3">
@@ -283,134 +313,188 @@
                     
                     <div class="space-y-1">
                         <h4 class="text-[10px] tracking-wider text-slate-400 uppercase font-semibold">Descrizione</h4>
-                        <p id="bio-description" class="text-xs text-slate-300 leading-relaxed">Nativa dei boschi ombrosi. Si sviluppa adagiandosi elegantemente, assorbendo l'umidità dell'aria e protendendo le sue foglie basali.</p>
+                        <p id="bio-description" class="text-xs text-slate-300 leading-relaxed">Descrizione botanica.</p>
                     </div>
 
                     <div class="space-y-1">
-                        <h4 class="text-[10px] tracking-wider text-slate-400 uppercase font-semibold">Fabbisogni Principali</h4>
-                        <p id="bio-needs" class="text-xs text-slate-300 leading-relaxed">Predilige una luce filtrata ed equilibrata (range ottimale 0.6 - 0.9). Un'esposizione diretta e accecante ne blocca la respirazione fogliare.</p>
+                        <h4 class="text-[10px] tracking-wider text-slate-400 uppercase font-semibold">Fabbisogni principali</h4>
+                        <p id="bio-needs" class="text-xs text-slate-300 leading-relaxed">Fabbisogni ambientali.</p>
                     </div>
 
                     <div class="space-y-2 pt-2">
-                        <h4 class="text-[10px] tracking-wider text-slate-400 uppercase font-semibold">Stadi del Ciclo Vitale</h4>
-                        <ul class="text-xs space-y-3 text-slate-300">
+                        <h4 class="text-[10px] tracking-wider text-slate-400 uppercase font-semibold">Stadi del ciclo vitale</h4>
+                        <ul class="text-xs space-y-2.5 text-slate-300">
                             <li class="flex gap-2"><span class="text-emerald-400">01.</span> <div><strong>Germinazione:</strong> Silenziosa trasformazione sotto terra.</div></li>
-                            <li class="flex gap-2"><span class="text-emerald-400">02.</span> <div><strong>Fase Vegetativa:</strong> Sviluppo dello stelo sinuoso e delle foglie.</div></li>
-                            <li class="flex gap-2"><span class="text-emerald-400">03.</span> <div><strong>Bocciolo:</strong> Presenza del nodo floreale primario.</div></li>
-                            <li class="flex gap-2"><span class="text-emerald-400">04.</span> <div><strong>Fioritura:</strong> Schiusa geometrica dei petali all'apice.</div></li>
+                            <li class="flex gap-2"><span class="text-emerald-400">02.</span> <div><strong>Fase vegetativa:</strong> Sviluppo dello stelo e delle foglie a doppia curvatura.</div></li>
+                            <li class="flex gap-2"><span class="text-emerald-400">03.</span> <div><strong>Bocciolo:</strong> Calice verde scultoreo semichiuso.</div></li>
+                            <li class="flex gap-2"><span class="text-emerald-400">04.</span> <div><strong>Fioritura:</strong> Schiusa organica dei petali traslucidi.</div></li>
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Diario Storico Interno Drawer -->
-        <div class="p-6 border-t border-slate-900 bg-slate-950/60 max-h-40 overflow-y-auto">
-            <span class="text-[10px] text-slate-400 tracking-wider block mb-2 uppercase font-semibold">DIARIO DEGLI EVENTI</span>
-            <div id="mini-diary-list" class="space-y-1.5 text-[10px] text-slate-300">
+        <!-- Diario storico ed eventi della pianta -->
+        <div class="p-6 border-t border-slate-800/60 bg-slate-950/70 max-h-48 overflow-y-auto">
+            <span class="text-[10px] text-slate-400 tracking-wider block mb-2 uppercase font-semibold">Diario degli eventi e lettere</span>
+            <div id="mini-diary-list" class="space-y-2 text-[10px] text-slate-300">
                 <!-- Generato dinamicamente -->
             </div>
         </div>
     </div>
 
-    <!-- RITO DELLA SEMINA - MODALE ELEGANTE -->
+    <!-- Modale rito della semina -->
     <div id="sowing-modal" class="absolute inset-0 bg-black/85 backdrop-blur-md z-40 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500">
         <div class="bg-[#0f131a] border border-slate-800 rounded-3xl p-8 max-w-md w-full mx-4 space-y-6 shadow-2xl">
             <div class="text-center space-y-2">
                 <span class="text-4xl inline-block">🌱</span>
-                <h3 class="text-2xl font-light tracking-wider">Il Rito della Semina</h3>
+                <h3 class="text-2xl font-light tracking-wider">Il rito della semina</h3>
                 <p class="text-[9px] text-slate-400 tracking-wider uppercase">Dona un'identità e inizia la cura</p>
             </div>
 
-            <!-- Selezione della Specie -->
+            <!-- Selezione della specie -->
             <div class="space-y-2">
-                <label class="text-[9px] text-slate-400 tracking-wider uppercase block font-semibold">Scegli la Specie Botanica</label>
+                <label class="text-[9px] text-slate-400 tracking-wider uppercase block font-semibold">Scegli la specie botanica</label>
                 <div id="sowing-species-grid" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
                     <!-- Generato dinamicamente in JS -->
                 </div>
             </div>
 
-            <!-- Descrizione rapida specie selezionata -->
+            <!-- Anteprima specie -->
             <div id="sowing-species-preview" class="p-3.5 bg-slate-950/40 border border-slate-900 rounded-xl text-[10px] text-slate-400 italic">
                 Seleziona una specie per vedere le sue peculiarità biologiche.
             </div>
 
-            <!-- Input Nome Obbligatorio -->
+            <!-- Input nome obbligatorio -->
             <div class="space-y-2">
-                <label class="text-[9px] text-slate-400 tracking-wider uppercase block font-semibold">Assegna un Nome Personale</label>
-                <input id="sowing-plant-name" type="text" placeholder="Es. Selene, Aria, Ignis..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-xs tracking-wider text-slate-200 outline-none focus:border-emerald-500 transition-colors">
+                <label class="text-[9px] text-slate-400 tracking-wider uppercase block font-semibold">Assegna un nome personale</label>
+                <input id="sowing-plant-name" type="text" placeholder="Es. Aria, Komorebi, Ignis, Flora..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-xs tracking-wider text-slate-200 outline-none focus:border-emerald-500 transition-colors">
                 <p class="text-[9px] text-slate-500 italic">"Nessuna pianta esiste finché non le si dona un nome."</p>
             </div>
 
-            <!-- Azione -->
+            <!-- Azioni -->
             <div class="flex gap-3 pt-2">
                 <button onclick="closeSowingModal()" class="flex-1 py-3 bg-slate-900 hover:bg-slate-850 rounded-xl text-xs tracking-wider text-slate-300 transition-all">Annulla</button>
-                <button onclick="executeSowing()" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-semibold tracking-wider shadow-lg shadow-emerald-500/10 transition-all">Sotto Terra</button>
+                <button onclick="executeSowing()" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-semibold tracking-wider shadow-lg shadow-emerald-500/10 transition-all">Semina nel vaso</button>
             </div>
         </div>
     </div>
 
-    <!-- MODALE LETTERA DI ADDIO & ARCHIVIAZIONE -->
+    <!-- Modale lettura lettere narrative -->
+    <div id="letter-modal" class="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-[#0f131a] border border-slate-800 rounded-3xl p-8 max-w-lg w-full mx-4 space-y-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800/60 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">💌</span>
+                    <div>
+                        <h3 id="letter-modal-title" class="text-xl font-light text-slate-100">Lettera di traguardo</h3>
+                        <p id="letter-modal-subtitle" class="text-[9px] text-emerald-400 uppercase tracking-widest">Dalla tua pianta</p>
+                    </div>
+                </div>
+                <button onclick="closeLetterModal()" class="p-2 text-slate-400 hover:text-slate-100">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="letter-modal-content" class="p-5 bg-slate-950/60 border border-slate-900 rounded-2xl italic text-xs leading-relaxed text-slate-300 space-y-3 max-h-64 overflow-y-auto">
+                <!-- Testo della lettera -->
+            </div>
+            <div class="text-right">
+                <button onclick="closeLetterModal()" class="px-6 py-2.5 bg-slate-900 hover:bg-slate-850 rounded-xl text-xs text-slate-300">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale "Mentre eri via..." (accoglienza offline) -->
+    <div id="offline-modal" class="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500">
+        <div class="bg-[#0f131a] border border-slate-800 rounded-3xl p-8 max-w-md w-full mx-4 space-y-6 shadow-2xl">
+            <div class="text-center space-y-2">
+                <span class="text-4xl inline-block">⏳</span>
+                <h3 class="text-2xl font-light tracking-wider">Mentre eri via...</h3>
+                <p id="offline-time-text" class="text-[10px] text-slate-400 tracking-wider uppercase">Assenza offline</p>
+            </div>
+            <div id="offline-report-content" class="p-5 bg-slate-950/60 border border-slate-900 rounded-2xl text-xs leading-relaxed text-slate-300 space-y-3">
+                <!-- Dettagli simulazione -->
+            </div>
+            <button onclick="closeOfflineModal()" class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-semibold tracking-wider transition-all">
+                Bentornato nel giardino
+            </button>
+        </div>
+    </div>
+
+    <!-- Modale lettera di addio & archiviazione -->
     <div id="farewell-modal" class="absolute inset-0 bg-black/92 backdrop-blur-md z-40 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500">
         <div class="bg-[#0f131a] border border-slate-800 rounded-3xl p-8 max-w-lg w-full mx-4 space-y-6 shadow-2xl">
             <div class="text-center space-y-2">
                 <span class="text-3xl inline-block">💌</span>
-                <h3 class="text-2xl font-light tracking-wider">Lettera da un Amico Silenzioso</h3>
-                <p id="farewell-title-name" class="text-[9px] text-emerald-400 tracking-wider uppercase font-semibold">Selene ti scrive...</p>
+                <h3 class="text-2xl font-light tracking-wider">Lettera da un amico silenzioso</h3>
+                <p id="farewell-title-name" class="text-[9px] text-emerald-400 tracking-wider uppercase font-semibold">La tua pianta ti scrive...</p>
             </div>
 
-            <!-- Corpo Lettera Dinamico -->
-            <div class="p-6 bg-slate-950/60 border border-slate-900 rounded-2xl italic text-xs leading-relaxed text-slate-350 space-y-4">
+            <!-- Corpo lettera -->
+            <div class="p-6 bg-slate-950/60 border border-slate-900 rounded-2xl italic text-xs leading-relaxed text-slate-300 space-y-4 max-h-56 overflow-y-auto">
                 <p id="farewell-letter-text">"Caro amico..."</p>
-                <p class="text-right text-[10px] text-emerald-400 not-italic font-semibold">— La tua pianta</p>
+                <p id="farewell-signature" class="text-right text-[10px] text-emerald-400 not-italic font-semibold">— La tua pianta</p>
             </div>
 
-            <!-- Riepilogo Statistico -->
+            <!-- Statistiche -->
             <div class="grid grid-cols-2 gap-4 text-[10px] bg-slate-950/40 p-3 rounded-xl border border-slate-900/60">
-                <div><span class="text-slate-500 block text-[9px] tracking-wider uppercase">SEMINATA IL:</span> <span id="farewell-stat-start" class="text-slate-200 block mt-0.5">23 Maggio 2026</span></div>
-                <div><span class="text-slate-500 block text-[9px] tracking-wider uppercase">DURATA CICLO:</span> <span id="farewell-stat-duration" class="text-emerald-400 block mt-0.5">X ore</span></div>
+                <div><span class="text-slate-500 block text-[9px] tracking-wider uppercase">Seminata il:</span> <span id="farewell-stat-start" class="text-slate-200 block mt-0.5">23 maggio 2026</span></div>
+                <div><span class="text-slate-500 block text-[9px] tracking-wider uppercase">Durata ciclo:</span> <span id="farewell-stat-duration" class="text-emerald-400 block mt-0.5">X ore</span></div>
             </div>
 
-            <!-- Decisione Solenne -->
+            <!-- Decisione -->
             <div class="space-y-3 pt-2">
                 <button onclick="freezeActivePlant()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-xl text-xs font-bold tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/10">
-                    <i data-lucide="snowflake" class="w-4 h-4"></i> CONGELA ED ARCHIVIA NELL'ERBARIO
+                    <i data-lucide="snowflake" class="w-4 h-4"></i> Congela ed archivia nell'erbario
                 </button>
-                <button onclick="removeActivePlant()" class="w-full py-3 bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 hover:border-red-500/30 text-red-400 rounded-xl text-xs tracking-wider transition-all">
-                    Disfati della pianta (Ricomincia un nuovo ciclo)
+                <button onclick="promptRemoveActivePlant()" class="w-full py-3 bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 hover:border-red-500/30 text-red-400 rounded-xl text-xs tracking-wider transition-all">
+                    Disfati della pianta (ricomincia un nuovo ciclo)
                 </button>
                 <button onclick="closeFarewellModal()" class="w-full py-2 text-[10px] text-slate-500 hover:text-slate-350 transition-colors uppercase tracking-widest text-center">Torna indietro</button>
             </div>
         </div>
     </div>
 
-    <!-- SCHERMATA ERBARIO VIRTUALI (MUSEO DELL'UTENTE) -->
+    <!-- Modale di conferma per azioni distruttive -->
+    <div id="delete-confirm-modal" class="absolute inset-0 bg-black/92 backdrop-blur-md z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-[#0f131a] border border-red-500/20 rounded-3xl p-8 max-w-sm w-full mx-4 space-y-5 shadow-2xl text-center">
+            <span class="text-4xl inline-block">⚠️</span>
+            <h3 class="text-xl font-light text-slate-100">Conferma rimozione</h3>
+            <p id="delete-confirm-text" class="text-xs text-slate-300 leading-relaxed">Questa azione libererà il vaso. Sei sicuro di voler proseguire?</p>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeDeleteConfirmModal()" class="flex-1 py-3 bg-slate-900 hover:bg-slate-800 rounded-xl text-xs text-slate-300">Annulla</button>
+                <button id="confirm-delete-btn" onclick="executeDeletePlant()" class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl text-xs shadow-lg shadow-red-500/20">Rimuovi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schermata erbario virtuale -->
     <div id="erbario-screen" class="absolute inset-0 bg-[#06080c] z-40 opacity-0 pointer-events-none transition-opacity duration-700 flex flex-col p-6 overflow-hidden">
-        <!-- Header Erbario -->
+        <!-- Header erbario -->
         <header class="flex justify-between items-center w-full pb-4 border-b border-slate-900">
             <div>
                 <h1 class="text-2xl font-light text-slate-100 tracking-wider flex items-center gap-2">
-                    <span>🍂</span> ERBARIO BOTANICO
+                    <span>🍂</span> Erbario botanico
                 </h1>
                 <p class="text-[10px] text-slate-400 tracking-wider uppercase mt-1">Il tuo patrimonio storico di cura e contemplazione</p>
             </div>
             <button onclick="toggleErbario()" class="px-5 py-2.5 bg-slate-900 border border-slate-800 rounded-full text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-2">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i> TORNA AL GIARDINO
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Torna al giardino
             </button>
         </header>
 
-        <!-- Capacità Erbario Info -->
-        <div class="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl my-4 text-[10px] text-emerald-400 flex justify-between items-center max-w-md">
-            <span>CAPACITÀ ARCHIVIO: <strong id="erbario-capacity-text">0/12 Piante</strong></span>
-            <span class="italic text-slate-400">"Ogni ricordo occupa uno spazio prezioso"</span>
+        <!-- Info capacità erbario -->
+        <div class="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl my-4 text-[10px] text-emerald-400 flex justify-between items-center max-w-lg">
+            <span>Capacità archivio: <strong id="erbario-capacity-text">0/12 piante</strong></span>
+            <span id="drying-ritual-hint" class="italic text-slate-400">"Ogni ricordo occupa uno spazio prezioso"</span>
         </div>
 
-        <!-- Contenuto Principale: Lista / Galleria Pedistalli -->
+        <!-- Galleria pedistalli -->
         <div class="flex-1 overflow-x-auto py-8 px-4 flex gap-8 items-center snap-x" id="erbario-grid-container">
             <!-- Pedistalli generati in JS -->
         </div>
 
-        <!-- Panel Dettaglio Pianta Archiviata -->
+        <!-- Pannello dettaglio pianta archiviata -->
         <div id="erbario-detail-panel" class="hidden fixed inset-y-0 right-0 w-[400px] bg-slate-950/95 border-l border-slate-900 backdrop-blur-md shadow-2xl p-6 flex flex-col justify-between z-50">
             <div class="space-y-6">
                 <div class="flex justify-between items-start">
@@ -423,102 +507,117 @@
                     </button>
                 </div>
 
-                <!-- Snapshot Preview -->
+                <!-- Snapshot preview -->
                 <div class="w-full aspect-square bg-slate-900/40 rounded-2xl overflow-hidden border border-slate-800/40 flex items-center justify-center relative">
-                    <img id="erb-det-snapshot" src="" class="w-full h-full object-cover" alt="Snapshot Pianta">
-                    <span class="absolute bottom-3 left-3 bg-slate-950/80 text-[8px] py-1 px-2.5 rounded-lg border border-slate-800/60 text-slate-400 uppercase tracking-wider font-semibold">Cattura di Sviluppo</span>
+                    <img id="erb-det-snapshot" src="" class="w-full h-full object-cover" alt="Snapshot pianta">
+                    <span class="absolute bottom-3 left-3 bg-slate-950/80 text-[8px] py-1 px-2.5 rounded-lg border border-slate-800/60 text-slate-400 uppercase tracking-wider font-semibold">Cattura di sviluppo</span>
                 </div>
 
-                <!-- Diario Dettagliato -->
+                <!-- Cronistoria dettagliata -->
                 <div class="space-y-2">
-                    <span class="text-[10px] text-slate-400 tracking-wider block uppercase font-semibold">CRONISTORIA BIOLOGICA</span>
+                    <span class="text-[10px] text-slate-400 tracking-wider block uppercase font-semibold">Cronistoria biologica</span>
                     <div id="erb-det-diary" class="space-y-1.5 max-h-40 overflow-y-auto text-xs text-slate-300">
                         <!-- Generato -->
                     </div>
                 </div>
             </div>
 
-            <!-- Esportazione -->
+            <!-- Esportazione ed essiccazione -->
             <div class="space-y-3 pt-4 border-t border-slate-900">
                 <button onclick="exportPlantCard()" class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold tracking-wider flex items-center justify-center gap-2 transition-all">
-                    <i data-lucide="download" class="w-4 h-4"></i> ESPORTA RICORDO (1200x1200px)
+                    <i data-lucide="download" class="w-4 h-4"></i> Esporta ricordo (1200x1200px)
                 </button>
-                <button onclick="deleteArchivedPlant()" class="w-full py-2 text-red-400/80 hover:text-red-400 text-xs tracking-wider transition-all">
-                    Rimuovi permanentemente dall'Erbario
+                <button onclick="promptDryingRitual()" id="btn-drying-ritual" class="w-full py-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-300 rounded-xl text-xs tracking-wider transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Rito di essiccazione e memoria (libera teca)
+                </button>
+                <button onclick="promptDeleteArchivedPlant()" class="w-full py-2 text-red-400/80 hover:text-red-400 text-xs tracking-wider transition-all">
+                    Rimuovi permanentemente dall'erbario
                 </button>
             </div>
         </div>
     </div>
 
-
-
+    <!-- Script applicativo principale -->
     <script>
-        /* ==========================================
-           1. DICHIARAZIONI GLOBALI & STATO DI GIOCO
-           ========================================== */
+        /* ==========================================================================
+           1. Dichiarazioni globali e stato
+           ========================================================================== */
         let scene, camera, renderer, activeSpotlight;
+        let ambientLight, directionalFillLight;
         let lightConeMesh, lightConeMaterial;
-        let pots = []; // Array di Vasi (contengono le piante)
-        let activePotIndex = 0; // Indice del vaso attualmente selezionato
-        let timeMultiplier = 1; // Moltiplicatore tempo per simulatore
-        let lastTimestamp = Date.now();
-        let habitPatterns = []; // Registrazione degli accessi dell'utente
-        let archivedPlants = []; // Erbario persistito
-        
-        // Tracciamento rotazioni vasi per drag interaction
+        let pots = [];
+        let activePotIndex = 0;
+        let timeMultiplier = 1;
+        let archivedPlants = [];
+        let memoryTokens = [];
+
+        // Controlli camera & interazione
         let isDragging = false;
         let previousMousePosition = { x: 0, y: 0 };
         let potRotations = [0];
-        let potGroups = []; // Cache dei gruppi 3D dei vasi per performance
-        let isCapturingSnapshot = false; // Flag per bloccare render/camera durante snapshot
-        let lightRelativeX = 0; // Offset relativo X della luce zenitale rispetto alla pianta attiva
-        let detailZoomLevel = 0; // Livello di zoom dettaglio nella vista drawer (range -2 a +3)
-        
-        let composer, ssaoPass, bloomPass;
-        let sandPlane, rock1, rock2, rock3;
+        let potGroups = [];
+        let isCapturingSnapshot = false;
+        let lightRelativeX = 0;
+        let detailZoomLevel = 0;
         let targetPitch = Math.atan2(1.2, 5.5);
         let currentPitch = Math.atan2(1.2, 5.5);
+        let touchImpulse = 0;
 
+        // Composizione post-processing
+        let composer, ssaoPass, bloomPass;
+        let sandPlane, rock1, rock2;
 
+        // Modalità speciali
+        let isRootViewActive = false;
+        let isBreathingModeActive = false;
+        let breathingStartTime = 0;
 
-        // Classe principale Plant (Architettura a Oggetti)
+        // Sistemi particellari
+        let waterParticleSystem, waterDroplets = [];
+        let bloomParticleSystem, bloomParticles = [];
+        let dustParticleSystem; // Pulviscolo atmosferico dorato (Komorebi) & lucciole
+
+        // Ritmo circadiano (0=Auto Reale, 1=Aurora, 2=Meriggio, 3=Crepuscolo, 4=Notte)
+        let circadianOverride = 0; 
+        const CIRCADIAN_PHASES = ['Tempo reale', 'Aurora dorata', 'Meriggio solare', 'Crepuscolo ambrato', 'Notte profonda'];
+
+        /* ==========================================================================
+           2. Classe Plant (Modello di Dominio)
+           ========================================================================== */
         class Plant {
             constructor(specie, name, potIndex, initialGrowth = 0) {
                 this.specie = specie;
-                this.name = name;
+                this.name = name || "Silente";
                 this.potIndex = potIndex;
-                this.growthProgress = initialGrowth; // G da 0 a 100
-                this.hydration = 100.0; // H da 0 a 100
+                this.growthProgress = initialGrowth;
+                this.displayGrowth = initialGrowth;
+                this.hydration = 100.0;
                 this.creationDate = Date.now();
                 this.lastCheck = Date.now();
                 this.isFrozen = false;
-                this.waterNeglects = 0; // Contatore siccità accumulata
-                this.snapshots = []; // Lista di snap storici in base64
+                this.waterNeglects = 0;
+                this.snapshots = [];
                 this.diary = [
-                    { stage: "Semina", timestamp: Date.now() }
+                    { stage: "Semina nel terreno", timestamp: Date.now(), letter: `Ho piantato le mie radici nel vaso. Mi hai donato il nome di ${this.name}. Inizia il nostro cammino insieme.` }
                 ];
                 
-                // Variabili di interpolazione per il recupero graduale dall'assenza
-                this.droopFactor = 0.0; // 0 = sana, 1 = completamente moscia/appassita
-                this.colorSaturate = 1.0; // 1 = saturazione standard, 0.3 = desaturazione da dormienza
-                
+                this.droopFactor = 0.0;
+                this.colorSaturate = 1.0;
+                this.lightValue = 80;
+
                 this.isRecovering = false;
                 this.recoveryStartDroop = 0;
-                this.recoveryStartSaturate = 1.0;
                 this.recoveryStartTime = 0;
 
-                this.lightValue = 80; // Valore esposizione luce calibrato per pianta (default 80%)
-
-                // Creazione del gruppo 3D
                 this.threeGroup = new THREE.Group();
             }
 
-            // Metodo statico per ricostruire un'istanza da JSON
             static fromJSON(data) {
-                let plant = new Plant(data.specie, data.name, data.potIndex, data.growthProgress);
-                plant.hydration = data.hydration;
-                plant.creationDate = data.creationDate;
-                plant.lastCheck = data.lastCheck;
+                const plant = new Plant(data.specie, data.name, data.potIndex, data.growthProgress);
+                plant.displayGrowth = data.growthProgress || 0;
+                plant.hydration = data.hydration !== undefined ? data.hydration : 100.0;
+                plant.creationDate = data.creationDate || Date.now();
+                plant.lastCheck = data.lastCheck || Date.now();
                 plant.isFrozen = data.isFrozen || false;
                 plant.waterNeglects = data.waterNeglects || 0;
                 plant.snapshots = data.snapshots || [];
@@ -530,16 +629,13 @@
             }
         }
 
-        /* ==========================================
-           2. INIZIALIZZAZIONE APPLICAZIONE (WEBGL)
-           ========================================== */
+        /* ==========================================================================
+           3. Inizializzazione applicazione & Three.js
+           ========================================================================== */
         window.onload = function() {
-            // Registriamo l'orario di accesso
-            recordHabitPattern();
-            // Carichiamo l'Erbario e lo Stato dei Vasi
             loadState();
-            // Lucide icons init
             lucide.createIcons();
+            setupKeyboardShortcuts();
         };
 
         function startApp() {
@@ -554,13 +650,104 @@
             generatePotSelectors();
             selectPot(0);
 
-            // Timer del ciclo biologico attivo ogni 2 secondi
+            // Timer biologico ogni 2 secondi
             setInterval(updatePlantsState, 2000);
+
+            // Controllo assenza offline
+            checkOfflineAbsence();
         }
 
-        // Generatore procedurale di normalMap per la sabbia (concentric circular ripples + fine sand noise)
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2('#080a0f', 0.038);
+
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            camera.position.set(0, 2.8, 5.5);
+            camera.lookAt(0, 1.6, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.05;
+            container.appendChild(renderer.domElement);
+
+            ambientLight = new THREE.AmbientLight('#0d1117', 0.09);
+            scene.add(ambientLight);
+
+            activeSpotlight = new THREE.SpotLight('#fffdfa', 8.5, 12.0, Math.PI / 5.5, 0.85, 1.4);
+            activeSpotlight.position.set(0, 4.8, 0.4);
+            activeSpotlight.castShadow = true;
+            activeSpotlight.shadow.mapSize.width = 2048;
+            activeSpotlight.shadow.mapSize.height = 2048;
+            activeSpotlight.shadow.bias = -0.0004;
+            scene.add(activeSpotlight);
+            scene.add(activeSpotlight.target);
+
+            // Cono di luce volumetrico
+            initVolumetricLightCone();
+
+            // Terreno di sabbia zen Karesansui
+            const sandNormal = generateSandNormalMap();
+            const sandGeo = new THREE.PlaneGeometry(16, 16, 64, 64);
+            sandGeo.rotateX(-Math.PI / 2);
+            const sandMat = new THREE.MeshStandardMaterial({
+                color: '#c4baa8',
+                roughness: 0.88,
+                metalness: 0.0,
+                normalMap: sandNormal,
+                normalScale: new THREE.Vector2(1.6, 1.6)
+            });
+            sandPlane = new THREE.Mesh(sandGeo, sandMat);
+            sandPlane.receiveShadow = true;
+            scene.add(sandPlane);
+
+            // Rocce wabi-sabi con muschio
+            initWabiSabiRocks();
+
+            // Costruzione del vaso Kintsugi
+            buildPotsInScene();
+
+            // Sistemi particellari: pulviscolo atmosferico, acqua e fioritura
+            createAtmosphericDust();
+            initWaterParticleSystem();
+            initBloomParticleSystem();
+
+            // Interazioni mouse e tocco
+            setupDragInteractions(container);
+            setupWateringButtonGesture();
+
+            // Post-processing
+            composer = new THREE.EffectComposer(renderer);
+            const renderPass = new THREE.RenderPass(scene, camera);
+            composer.addPass(renderPass);
+
+            try {
+                ssaoPass = new THREE.SSAOPass(scene, camera, width, height);
+                ssaoPass.kernelRadius = 16;
+                ssaoPass.minDistance = 0.002;
+                ssaoPass.maxDistance = 0.06;
+                composer.addPass(ssaoPass);
+            } catch (e) {}
+
+            bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(width, height), 0.28, 0.4, 0.88);
+            composer.addPass(bloomPass);
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        /* ==========================================================================
+           4. Sistemi grafici ambientali (Sabbia, Rocce, Luce volumetrica, Vaso Kintsugi)
+           ========================================================================== */
         function generateSandNormalMap() {
-            const size = 1024;
+            const size = 512;
             const canvas = document.createElement('canvas');
             canvas.width = size;
             canvas.height = size;
@@ -568,47 +755,32 @@
             const imgData = ctx.createImageData(size, size);
             const data = imgData.data;
             
-            const freq = 36; // frequency of ripples
-            const amp = 0.55; // ripple depth
+            const freq = 26;
+            const amp = 0.55;
             
             for (let y = 0; y < size; y++) {
                 for (let x = 0; x < size; x++) {
                     const u = x / (size - 1);
                     const v = y / (size - 1);
-                    
                     const dx = u - 0.5;
                     const dy = v - 0.5;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    
+                    const dist = Math.sqrt(dx * dx + dy * dy);
                     const angle = dist * Math.PI * 2 * freq;
-                    const cosVal = Math.cos(angle);
-                    
-                    // radial gradient slope
-                    const dydr = amp * cosVal;
+                    const dydr = amp * Math.cos(angle);
                     
                     const nx_radial = dist > 0 ? (dx / dist) * dydr : 0;
                     const ny_radial = dist > 0 ? (dy / dist) * dydr : 0;
-                    
-                    // high frequency fine sand noise
-                    const noise = (Math.random() - 0.5) * 0.12;
+                    const noise = (Math.random() - 0.5) * 0.08;
                     
                     let nx = nx_radial + noise;
                     let ny = ny_radial + noise;
                     let nz = 1.0;
-                    
-                    const len = Math.sqrt(nx*nx + ny*ny + nz*nz);
-                    nx /= len;
-                    ny /= len;
-                    const nzNormalized = nz / len;
-                    
-                    const r = Math.floor((nx * 0.5 + 0.5) * 255);
-                    const g = Math.floor((ny * 0.5 + 0.5) * 255);
-                    const b = Math.floor((nzNormalized * 0.5 + 0.5) * 255);
+                    const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
                     
                     const idx = (y * size + x) * 4;
-                    data[idx] = r;
-                    data[idx+1] = g;
-                    data[idx+2] = b;
+                    data[idx] = Math.floor(((nx / len) * 0.5 + 0.5) * 255);
+                    data[idx+1] = Math.floor(((ny / len) * 0.5 + 0.5) * 255);
+                    data[idx+2] = Math.floor(((nz / len) * 0.5 + 0.5) * 255);
                     data[idx+3] = 255;
                 }
             }
@@ -619,93 +791,55 @@
             return texture;
         }
 
-        // Texture di rumore procedurale per le mappe di roughness
-        function generateNoiseTexture(width = 256, height = 256) {
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            const imgData = ctx.createImageData(width, height);
-            const data = imgData.data;
-            for (let i = 0; i < data.length; i += 4) {
-                const val = Math.floor(Math.random() * 255);
-                data[i] = val;
-                data[i+1] = val;
-                data[i+2] = val;
-                data[i+3] = 255;
-            }
-            ctx.putImageData(imgData, 0, 0);
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = THREE.RepeatWrapping;
-            texture.wrapT = THREE.RepeatWrapping;
-            return texture;
-        }
-
-        // Geometria irregolare per rocce basaltiche Wabi-Sabi
         function createRockGeometry(radius, detail) {
             const geo = new THREE.IcosahedronGeometry(radius, detail);
             const pos = geo.attributes.position;
             const v = new THREE.Vector3();
+            const colors = [];
+            const colorRock = new THREE.Color('#383a38');
+            const colorMoss = new THREE.Color('#2d4a2d');
+
             for (let i = 0; i < pos.count; i++) {
                 v.fromBufferAttribute(pos, i);
-                
-                // Add organic displacement
-                const noise = Math.sin(v.x * 5) * Math.cos(v.y * 5) * Math.sin(v.z * 5) * 0.16 +
-                              Math.sin(v.x * 10 + v.y * 8) * 0.05;
+                const noise = Math.sin(v.x * 5) * Math.cos(v.y * 5) * Math.sin(v.z * 5) * 0.15;
                 v.addScaledVector(v.clone().normalize(), noise);
-                
-                // Flatten the bottom slightly
-                if (v.y < 0) {
-                    v.y *= 0.55;
-                }
+                if (v.y < 0) v.y *= 0.55;
                 pos.setXYZ(i, v.x, v.y, v.z);
+
+                // Vertici orientati verso l'alto sfumano nel verde muschio
+                const mossFactor = Math.max(0, Math.min(1, (v.y / radius) * 1.2));
+                const c = colorRock.clone().lerp(colorMoss, mossFactor);
+                colors.push(c.r, c.g, c.b);
             }
+            geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
             geo.computeVertexNormals();
             return geo;
         }
 
-        function init3D() {
-            const container = document.getElementById('canvas-container');
-            const width = window.innerWidth;
-            const height = window.innerHeight;
+        function initWabiSabiRocks() {
+            const rockMat = new THREE.MeshStandardMaterial({
+                vertexColors: true,
+                roughness: 0.75,
+                metalness: 0.05
+            });
 
-            // Scena
-            scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2('#080a0f', 0.04);
+            rock1 = new THREE.Mesh(createRockGeometry(0.55, 3), rockMat);
+            rock1.scale.set(1.0, 1.3, 0.95);
+            rock1.position.set(-1.15, 0.25, -0.6);
+            rock1.castShadow = true;
+            rock1.receiveShadow = true;
+            scene.add(rock1);
 
-            // Camera (primo piano ravvicinato sul vaso singolo)
-            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-            camera.position.set(0, 2.8, 5.5);
-            camera.lookAt(0, 1.6, 0);
+            rock2 = new THREE.Mesh(createRockGeometry(0.38, 3), rockMat);
+            rock2.scale.set(1.2, 0.8, 1.0);
+            rock2.position.set(1.05, 0.12, 0.5);
+            rock2.castShadow = true;
+            rock2.receiveShadow = true;
+            scene.add(rock2);
+        }
 
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.0;
-            container.appendChild(renderer.domElement);
-
-            // Luci d'Ambiente (Vibe Elegante, molto soffusa per azzerare la luce ai bordi)
-            const ambientLight = new THREE.AmbientLight('#090a10', 0.03);
-            scene.add(ambientLight);
-
-            // Spotlight principale zenitale a cono (concentrato sul vaso attivo)
-            activeSpotlight = new THREE.SpotLight('#fffdfa', 8.0, 12.0, Math.PI / 6, 0.8, 1.5);
-            activeSpotlight.position.set(0, 4.8, 0.4);
-            activeSpotlight.castShadow = true;
-            activeSpotlight.shadow.mapSize.width = 2048; // optimized higher resolution shadow maps
-            activeSpotlight.shadow.mapSize.height = 2048;
-            activeSpotlight.shadow.bias = -0.0005; // eliminate shadow acne
-            activeSpotlight.shadow.camera.near = 0.5;
-            activeSpotlight.shadow.camera.far = 15;
-            scene.add(activeSpotlight);
-            scene.add(activeSpotlight.target);
-
-            // Materiale per il cono di luce visibile (Shader personalizzato con micro-shimmer)
-            const vertexShaderCode = `
+        function initVolumetricLightCone() {
+            const vertexShader = `
                 varying vec2 vUv;
                 varying vec3 vNormal;
                 varying vec3 vViewPosition;
@@ -717,8 +851,7 @@
                     gl_Position = projectionMatrix * mvPosition;
                 }
             `;
-
-            const fragmentShaderCode = `
+            const fragmentShader = `
                 varying vec2 vUv;
                 varying vec3 vNormal;
                 varying vec3 vViewPosition;
@@ -726,31 +859,22 @@
                 uniform float intensity;
                 uniform float time;
                 void main() {
-                    // Sfumatura dall'alto (apice) verso il basso (base)
                     float radialFade = 1.0 - vUv.y;
-                    
-                    // Effetto Fresnel per ammorbidire i bordi esterni
                     vec3 normal = normalize(vNormal);
                     vec3 viewDir = normalize(vViewPosition);
-                    float edgeFade = pow(abs(dot(normal, viewDir)), 2.0);
-                    
-                    // Dissolvenza vicino alla sorgente per evitare un punto netto
-                    float apexFade = smoothstep(0.0, 0.15, vUv.y);
-                    
-                    // Aggiunge un leggero movimento organico (effetto pulviscolo/atmosfera)
-                    float noise = sin(vUv.x * 20.0 + time * 0.8) * cos(vUv.y * 10.0 - time * 0.5) * 0.15 + 0.85;
-                    
+                    float edgeFade = pow(abs(dot(normal, viewDir)), 1.8);
+                    float apexFade = smoothstep(0.0, 0.18, vUv.y);
+                    float noise = sin(vUv.x * 24.0 + time * 0.7) * cos(vUv.y * 12.0 - time * 0.4) * 0.18 + 0.82;
                     float alpha = radialFade * edgeFade * apexFade * intensity * noise;
                     gl_FragColor = vec4(color, alpha);
                 }
             `;
-
             lightConeMaterial = new THREE.ShaderMaterial({
-                vertexShader: vertexShaderCode,
-                fragmentShader: fragmentShaderCode,
+                vertexShader,
+                fragmentShader,
                 uniforms: {
                     color: { value: new THREE.Color('#fffdfa') },
-                    intensity: { value: 0.8 * 0.12 }, // default 80%
+                    intensity: { value: 0.8 * 0.14 },
                     time: { value: 0.0 }
                 },
                 transparent: true,
@@ -758,85 +882,37 @@
                 depthWrite: false,
                 side: THREE.DoubleSide
             });
-
-            // Creazione del cono di luce visibile
             const coneGeo = new THREE.ConeGeometry(1.6, 4.0, 32, 1, true);
-            coneGeo.translate(0, -2.0, 0); // sposta l'origine all'apice
+            coneGeo.translate(0, -2.0, 0);
             lightConeMesh = new THREE.Mesh(coneGeo, lightConeMaterial);
             scene.add(lightConeMesh);
+        }
 
-            // Terreno di sabbia del Giardino Zen
-            const sandNormal = generateSandNormalMap();
-            const sandGeo = new THREE.PlaneGeometry(16, 16, 128, 128);
-            sandGeo.rotateX(-Math.PI / 2);
-            const sandMat = new THREE.MeshStandardMaterial({
-                color: '#c8beb3', // warm light grey / sand
-                roughness: 0.85,
-                metalness: 0.0,
-                normalMap: sandNormal,
-                normalScale: new THREE.Vector2(1.5, 1.5)
-            });
-            const sand = new THREE.Mesh(sandGeo, sandMat);
-            sand.position.set(0, 0, 0);
-            sand.receiveShadow = true;
-            scene.add(sand);
+        function updateLightCone(lightPos, targetPos) {
+            if (!lightConeMesh) return;
+            lightConeMesh.position.copy(lightPos);
+            const dir = new THREE.Vector3().subVectors(targetPos, lightPos);
+            const distance = dir.length();
+            const alignAxis = new THREE.Vector3(0, -1, 0);
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(alignAxis, dir.clone().normalize());
+            lightConeMesh.quaternion.copy(quaternion);
+            lightConeMesh.scale.set(1.0, distance / 4.0, 1.0);
+        }
 
-            // Rocce Basaltiche Wabi-Sabi
-            const rockNoise = generateNoiseTexture();
-            const rockMat = new THREE.MeshStandardMaterial({
-                color: '#383a38', // dark basalt grey
-                roughness: 0.6,
-                metalness: 0.1,
-                roughnessMap: rockNoise
-            });
-
-            // Rock 1: Grande (retro-sinistra)
-            const rock1Geo = createRockGeometry(0.55, 3);
-            rock1Geo.scale(1.0, 1.3, 0.95);
-            rock1 = new THREE.Mesh(rock1Geo, rockMat);
-            rock1.position.set(-1.1, 0.25, -0.6);
-            rock1.rotation.set(0.1, 0.4, -0.2);
-            rock1.castShadow = true;
-            rock1.receiveShadow = true;
-            scene.add(rock1);
-
-            // Rock 2: Media (fronte-destra)
-            const rock2Geo = createRockGeometry(0.38, 3);
-            rock2Geo.scale(1.2, 0.8, 1.0);
-            rock2 = new THREE.Mesh(rock2Geo, rockMat);
-            rock2.position.set(1.0, 0.12, 0.5);
-            rock2.rotation.set(-0.15, -0.3, 0.1);
-            rock2.castShadow = true;
-            rock2.receiveShadow = true;
-            scene.add(rock2);
-
-            // Rock 3: Piccola (fronte-sinistra)
-            const rock3Geo = createRockGeometry(0.24, 3);
-            rock3Geo.scale(1.0, 0.7, 1.2);
-            rock3 = new THREE.Mesh(rock3Geo, rockMat);
-            rock3.position.set(-0.75, 0.06, 0.85);
-            rock3.rotation.set(0.2, 0.8, -0.1);
-            rock3.castShadow = true;
-            rock3.receiveShadow = true;
-            scene.add(rock3);
-
-            // Costruiamo il vaso fisico nella scena
-            const potPositions = [0];
-            potGroups = []; // Reset cache
+        function buildPotsInScene() {
+            potGroups = [];
             for (let i = 0; i < 1; i++) {
                 const potGroup = new THREE.Group();
-                potGroup.position.set(potPositions[i], 0, 0);
-                // Applica la rotazione salvata
+                potGroup.position.set(0, 0, 0);
                 potGroup.rotation.y = potRotations[i] || 0;
 
-                // === VASO KINTSUGI (金継ぎ) - Pietra giapponese con riparazioni in oro ===
-                
-                // Corpo in pietra scura (openEnded = true per evitare la faccia superiore che causa z-fighting)
-                const potGeo = new THREE.CylinderGeometry(0.8, 0.6, 1.2, 32, 1, true);
-                const potMat = new THREE.MeshStandardMaterial({ 
-                    color: '#3a3a3a', 
-                    roughness: 0.95, 
-                    metalness: 0.05,
+                // Vaso Kintsugi in arenaria levigata
+                const potGeo = new THREE.CylinderGeometry(0.8, 0.58, 1.2, 48, 1, true);
+                const potMat = new THREE.MeshPhysicalMaterial({ 
+                    color: '#2e2e30', 
+                    roughness: 0.7, 
+                    metalness: 0.08,
+                    clearcoat: 0.15,
                     side: THREE.DoubleSide
                 });
                 const pot = new THREE.Mesh(potGeo, potMat);
@@ -845,73 +921,23 @@
                 pot.receiveShadow = true;
                 potGroup.add(pot);
 
-                // Materiale oro kintsugi condiviso
+                // Riparazioni dorate Kintsugi a bordo superiore
                 const goldMat = new THREE.MeshStandardMaterial({ 
-                    color: '#d4a017', 
-                    roughness: 0.2, 
-                    metalness: 0.85,
-                    emissive: '#3d2e00',
-                    emissiveIntensity: 0.15
+                    color: '#e5b838', 
+                    roughness: 0.15, 
+                    metalness: 0.92,
+                    emissive: '#4a3800',
+                    emissiveIntensity: 0.12
                 });
-
-                // Venature kintsugi dorate (4 crepe riparate sulla superficie del vaso)
-                const kintsugiSeams = [
-                    // Ogni crepa: [angolo in radianti, Y partenza (0=base, 1=cima), altezza, curvatura]
-                    { angle: 0.3,    yStart: 0.05, height: 0.95, curve: 0.12,  fork: true },
-                    { angle: 1.8,    yStart: 0.15, height: 0.85, curve: -0.08, fork: false },
-                    { angle: 3.4,    yStart: 0.0,  height: 0.70, curve: 0.15,  fork: true },
-                    { angle: 5.1,    yStart: 0.25, height: 0.60, curve: -0.10, fork: false }
-                ];
-
-                kintsugiSeams.forEach(seam => {
-                    const seamPoints = [];
-                    const segments = 12;
-                    for (let s = 0; s <= segments; s++) {
-                        const t = s / segments;
-                        const y = seam.yStart + t * seam.height;
-                        // Raggio del cilindro a questa altezza (interpolazione lineare tra 0.6 e 0.8)
-                        const radius = 0.6 + (0.8 - 0.6) * y + 0.005; // Leggermente fuori superficie
-                        const currentAngle = seam.angle + Math.sin(t * Math.PI) * seam.curve;
-                        const x = Math.cos(currentAngle) * radius;
-                        const z = Math.sin(currentAngle) * radius;
-                        seamPoints.push(new THREE.Vector3(x, y * 1.2, z));
-                    }
-                    const seamCurve = new THREE.CatmullRomCurve3(seamPoints);
-                    const seamGeo = new THREE.TubeGeometry(seamCurve, 16, 0.012, 6, false);
-                    const seamMesh = new THREE.Mesh(seamGeo, goldMat);
-                    seamMesh.castShadow = false;
-                    pot.add(seamMesh);
-
-                    // Biforcazione (fork) su alcune crepe
-                    if (seam.fork) {
-                        const forkStart = Math.floor(segments * 0.6);
-                        const forkPoints = [];
-                        for (let f = forkStart; f <= segments; f++) {
-                            const t = f / segments;
-                            const y = seam.yStart + t * seam.height;
-                            const radius = 0.6 + (0.8 - 0.6) * y + 0.005;
-                            const forkAngle = seam.angle + Math.sin(t * Math.PI) * seam.curve + (t - 0.6) * 0.35;
-                            const x = Math.cos(forkAngle) * radius;
-                            const z = Math.sin(forkAngle) * radius;
-                            forkPoints.push(new THREE.Vector3(x, y * 1.2, z));
-                        }
-                        const forkCurve = new THREE.CatmullRomCurve3(forkPoints);
-                        const forkGeo = new THREE.TubeGeometry(forkCurve, 10, 0.008, 6, false);
-                        const forkMesh = new THREE.Mesh(forkGeo, goldMat);
-                        pot.add(forkMesh);
-                    }
-                });
-
-                // Anello dorato sul bordo superiore (riparazione kintsugi del labbro)
-                const rimGeo = new THREE.TorusGeometry(0.8, 0.018, 8, 48);
+                const rimGeo = new THREE.TorusGeometry(0.8, 0.022, 12, 48);
                 const rimMesh = new THREE.Mesh(rimGeo, goldMat);
-                rimMesh.position.y = 0.6; // Cima del vaso (locale al pot che è a y=0.6)
+                rimMesh.position.y = 0.6;
                 rimMesh.rotation.x = Math.PI / 2;
                 pot.add(rimMesh);
 
-                // Terreno interno al vaso (abbassato a y = 1.10 per incavarlo e ricevere ombre)
-                const dirtGeo = new THREE.CylinderGeometry(0.75, 0.72, 0.1, 24);
-                const dirtMat = new THREE.MeshStandardMaterial({ color: '#140e0c', roughness: 1.0 });
+                // Terreno interno
+                const dirtGeo = new THREE.CylinderGeometry(0.76, 0.73, 0.1, 32);
+                const dirtMat = new THREE.MeshStandardMaterial({ color: '#3d3028', roughness: 0.95 });
                 const dirt = new THREE.Mesh(dirtGeo, dirtMat);
                 dirt.position.y = 1.10;
                 dirt.receiveShadow = true;
@@ -919,103 +945,666 @@
 
                 scene.add(potGroup);
 
-                // Se in questo slot vaso c'è una pianta salvata, la colleghiamo
                 if (pots[i]) {
                     potGroup.add(pots[i].threeGroup);
-                    buildPlant3D(pots[i]);
+                    buildPlant3D(pots[i], true);
                 }
 
-                potGroup.userData = { index: i, dirtMesh: dirt };
-                potGroups.push(potGroup); // Cache it!
+                potGroup.userData = { index: i, potMesh: pot, dirtMesh: dirt, potMat: potMat };
+                potGroups.push(potGroup);
             }
-
-            // Sistema di Lucciole/Particelle (Polline fluttuante)
-            createFireflies();
-
-            // Adattamento orario basato sulla routine salvata
-            adaptSceneToUserHabits();
-
-            // Setup eventi di drag per ruotare il vaso attivo
-            setupDragInteractions(container);
-
-            // Setup Post-processing (EffectComposer)
-            composer = new THREE.EffectComposer(renderer);
-            const renderPass = new THREE.RenderPass(scene, camera);
-            composer.addPass(renderPass);
-
-            // SSAO Pass for premium contact shadows
-            try {
-                ssaoPass = new THREE.SSAOPass(scene, camera, width, height);
-                ssaoPass.kernelRadius = 16;
-                ssaoPass.minDistance = 0.002;
-                ssaoPass.maxDistance = 0.06;
-                composer.addPass(ssaoPass);
-            } catch (e) {
-                console.warn("SSAO Pass failed to load, skipping:", e);
-            }
-
-            // Unreal Bloom Pass
-            bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(width, height), 0.25, 0.4, 0.9);
-            bloomPass.threshold = 0.90; // high threshold to only bloom on specular highlight peaks
-            bloomPass.strength = 0.3; // moderate strength
-            bloomPass.radius = 0.5; // balanced radius
-            composer.addPass(bloomPass);
-
-            // Loop di animazione
-            window.addEventListener('resize', onWindowResize);
-            animate();
         }
 
-        // Helper per posizionare, orientare e scalare il cono di luce visibile
-        function updateLightCone(lightPos, targetPos) {
-            if (!lightConeMesh) return;
-            
-            // Posiziona l'apice alla sorgente di luce
-            lightConeMesh.position.copy(lightPos);
-            
-            // Calcola direzione e distanza
-            const dir = new THREE.Vector3().subVectors(targetPos, lightPos);
-            const distance = dir.length();
-            
-            // Allinea il cono (che di default punta verso -Y localmente) alla direzione del faretto
-            const alignAxis = new THREE.Vector3(0, -1, 0);
-            const targetDir = dir.clone().normalize();
-            const quaternion = new THREE.Quaternion().setFromUnitVectors(alignAxis, targetDir);
-            lightConeMesh.quaternion.copy(quaternion);
-            
-            // Scala l'altezza per farla coincidere con la distanza effettiva
-            lightConeMesh.scale.set(1.0, distance / 4.0, 1.0);
-        }
-
-        // Sistema particellare
-        let particleSystem;
-        function createFireflies() {
-            const particleCount = 45;
-            const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array(particleCount * 3);
-            for(let i = 0; i < particleCount * 3; i += 3) {
-                positions[i] = (Math.random() - 0.5) * 10;
-                positions[i+1] = Math.random() * 4 + 0.8;
-                positions[i+2] = (Math.random() - 0.5) * 4;
+        /* ==========================================================================
+           5. Sistemi Particellari (Pulviscolo Atmosferico Komorebi, Acqua, Fioritura)
+           ========================================================================== */
+        function createAtmosphericDust() {
+            const count = 60;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i += 3) {
+                pos[i] = (Math.random() - 0.5) * 4;
+                pos[i+1] = Math.random() * 3.5 + 0.8;
+                pos[i+2] = (Math.random() - 0.5) * 3;
             }
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const material = new THREE.PointsMaterial({
-                color: '#6ee7b7',
-                size: 0.035,
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({
+                color: '#fef08a',
+                size: 0.038,
                 transparent: true,
-                opacity: 0.35,
+                opacity: 0.45,
                 blending: THREE.AdditiveBlending
             });
-            particleSystem = new THREE.Points(geometry, material);
-            scene.add(particleSystem);
+            dustParticleSystem = new THREE.Points(geo, mat);
+            scene.add(dustParticleSystem);
         }
 
-        /* ==========================================
-           3. INTERAZIONE DRAG TO ROTATE
-           ========================================== */
+        function initWaterParticleSystem() {
+            const maxDrops = 100;
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(maxDrops * 3);
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const mat = new THREE.PointsMaterial({
+                color: '#38bdf8',
+                size: 0.045,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending
+            });
+            waterParticleSystem = new THREE.Points(geo, mat);
+            waterParticleSystem.visible = false;
+            scene.add(waterParticleSystem);
+        }
+
+        function spawnWaterDroplets(count = 4) {
+            const targetX = potGroups[activePotIndex] ? potGroups[activePotIndex].position.x : 0;
+            for (let i = 0; i < count; i++) {
+                waterDroplets.push({
+                    x: targetX + (Math.random() - 0.5) * 0.45,
+                    y: 3.5 + Math.random() * 0.4,
+                    z: (Math.random() - 0.5) * 0.45,
+                    vy: -0.09 - Math.random() * 0.04
+                });
+            }
+            if (waterDroplets.length > 100) waterDroplets.splice(0, 20);
+        }
+
+        function updateWaterParticles() {
+            if (!waterParticleSystem) return;
+            if (waterDroplets.length === 0) {
+                waterParticleSystem.visible = false;
+                return;
+            }
+            waterParticleSystem.visible = true;
+            const positions = waterParticleSystem.geometry.attributes.position.array;
+            
+            for (let i = waterDroplets.length - 1; i >= 0; i--) {
+                const d = waterDroplets[i];
+                d.y += d.vy;
+                d.vy -= 0.005;
+                
+                if (d.y <= 1.12) {
+                    waterDroplets.splice(i, 1);
+                } else {
+                    positions[i * 3] = d.x;
+                    positions[i * 3 + 1] = d.y;
+                    positions[i * 3 + 2] = d.z;
+                }
+            }
+            for (let i = waterDroplets.length; i < 100; i++) {
+                positions[i * 3 + 1] = -100;
+            }
+            waterParticleSystem.geometry.attributes.position.needsUpdate = true;
+        }
+
+        function initBloomParticleSystem() {
+            const count = 60;
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const mat = new THREE.PointsMaterial({
+                color: '#facc15',
+                size: 0.055,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending
+            });
+            bloomParticleSystem = new THREE.Points(geo, mat);
+            bloomParticleSystem.visible = false;
+            scene.add(bloomParticleSystem);
+        }
+
+        function triggerBloomEvent(plant) {
+            const targetX = potGroups[activePotIndex] ? potGroups[activePotIndex].position.x : 0;
+            bloomParticles = [];
+            for (let i = 0; i < 60; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.015 + Math.random() * 0.025;
+                bloomParticles.push({
+                    x: targetX,
+                    y: 2.2 + (Math.random() - 0.5) * 0.2,
+                    z: 0,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed + 0.01,
+                    vz: (Math.random() - 0.5) * speed,
+                    life: 1.0
+                });
+            }
+            showToast(`Splendore supremo! ${plant.name} si è schiusa in piena fioritura.`);
+            
+            plant.diary.push({
+                stage: "Fioritura suprema",
+                timestamp: Date.now(),
+                letter: `Oggi i miei petali si sono aperti alla tua luce. Questa fioritura è il nostro traguardo: grazie per ogni goccia d'acqua e per la tua presenza costante.`
+            });
+
+            saveState();
+            updateUI();
+        }
+
+        function updateBloomParticles() {
+            if (!bloomParticleSystem || bloomParticles.length === 0) {
+                if (bloomParticleSystem) bloomParticleSystem.visible = false;
+                return;
+            }
+            bloomParticleSystem.visible = true;
+            const positions = bloomParticleSystem.geometry.attributes.position.array;
+
+            for (let i = bloomParticles.length - 1; i >= 0; i--) {
+                const p = bloomParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.z += p.vz;
+                p.life -= 0.008;
+
+                if (p.life <= 0) {
+                    bloomParticles.splice(i, 1);
+                } else {
+                    positions[i * 3] = p.x;
+                    positions[i * 3 + 1] = p.y;
+                    positions[i * 3 + 2] = p.z;
+                }
+            }
+            for (let i = bloomParticles.length; i < 60; i++) {
+                positions[i * 3 + 1] = -100;
+            }
+            bloomParticleSystem.geometry.attributes.position.needsUpdate = true;
+        }
+
+        /* ==========================================================================
+           6. Ciclo Circadiano & Modalità Speciali (Respiro zen, Sotto terra)
+           ========================================================================== */
+        function getEffectiveCircadianHour() {
+            if (circadianOverride === 0) {
+                const now = new Date();
+                return now.getHours() + now.getMinutes() / 60;
+            }
+            switch (circadianOverride) {
+                case 1: return 6.5;
+                case 2: return 12.0;
+                case 3: return 19.5;
+                case 4: return 23.5;
+                default: return 12.0;
+            }
+        }
+
+        function cycleCircadianMode() {
+            circadianOverride = (circadianOverride + 1) % 5;
+            updateCircadianEnvironment();
+            const phaseName = CIRCADIAN_PHASES[circadianOverride];
+            showToast(`Ritmo circadiano: ${phaseName.toLowerCase()}`);
+        }
+
+        function updateCircadianEnvironment() {
+            const hour = getEffectiveCircadianHour();
+            const timeDisplay = document.getElementById('time-display');
+            const iconEl = document.getElementById('circadian-icon');
+            const skyOverlay = document.getElementById('sky-gradient-overlay');
+
+            if (hour >= 5.0 && hour < 8.5) {
+                // Aurora dorata
+                activeSpotlight.color.setHex(0xffe4b5);
+                activeSpotlight.position.set(-0.6, 4.5, 0.6);
+                lightRelativeX = -0.6;
+                ambientLight.color.setHex(0x1a1510);
+                if (skyOverlay) skyOverlay.className = "absolute inset-0 bg-gradient-to-b from-[#1a120b] via-transparent to-[#080a0f] opacity-60 pointer-events-none z-10 transition-colors duration-1000";
+                iconEl.textContent = "🌅";
+                timeDisplay.textContent = `Aurora dorata (${Math.floor(hour)}:${Math.floor((hour%1)*60).toString().padStart(2,'0')})`;
+            } else if (hour >= 8.5 && hour < 18.0) {
+                // Meriggio solare
+                activeSpotlight.color.setHex(0xffffff);
+                activeSpotlight.position.set(0.0, 4.8, 0.4);
+                lightRelativeX = 0.0;
+                ambientLight.color.setHex(0x11161f);
+                if (skyOverlay) skyOverlay.className = "absolute inset-0 bg-gradient-to-b from-[#0a0f18] via-transparent to-[#080a0f] opacity-60 pointer-events-none z-10 transition-colors duration-1000";
+                iconEl.textContent = "☀️";
+                timeDisplay.textContent = `Meriggio solare (${Math.floor(hour)}:${Math.floor((hour%1)*60).toString().padStart(2,'0')})`;
+            } else if (hour >= 18.0 && hour < 21.5) {
+                // Crepuscolo ambrato
+                activeSpotlight.color.setHex(0xff9944);
+                activeSpotlight.position.set(0.7, 4.5, 0.5);
+                lightRelativeX = 0.7;
+                ambientLight.color.setHex(0x221310);
+                if (skyOverlay) skyOverlay.className = "absolute inset-0 bg-gradient-to-b from-[#201015] via-transparent to-[#080a0f] opacity-70 pointer-events-none z-10 transition-colors duration-1000";
+                iconEl.textContent = "🌇";
+                timeDisplay.textContent = `Crepuscolo ambrato (${Math.floor(hour)}:${Math.floor((hour%1)*60).toString().padStart(2,'0')})`;
+            } else {
+                // Notte profonda
+                activeSpotlight.color.setHex(0xa5c4f7);
+                activeSpotlight.position.set(0.2, 4.8, 0.4);
+                lightRelativeX = 0.2;
+                ambientLight.color.setHex(0x060910);
+                if (skyOverlay) skyOverlay.className = "absolute inset-0 bg-gradient-to-b from-[#04060a] via-transparent to-[#080a0f] opacity-80 pointer-events-none z-10 transition-colors duration-1000";
+                iconEl.textContent = "🌙";
+                timeDisplay.textContent = `Notte profonda (${Math.floor(hour)}:${Math.floor((hour%1)*60).toString().padStart(2,'0')})`;
+            }
+        }
+
+        function toggleRootView() {
+            isRootViewActive = !isRootViewActive;
+            const btn = document.getElementById('btn-roots');
+            if (btn) {
+                if (isRootViewActive) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+
+            if (potGroups[activePotIndex] && potGroups[activePotIndex].userData) {
+                const potMesh = potGroups[activePotIndex].userData.potMesh;
+                if (potMesh && potMesh.material) {
+                    potMesh.material.transparent = isRootViewActive;
+                    potMesh.material.opacity = isRootViewActive ? 0.28 : 1.0;
+                    potMesh.material.needsUpdate = true;
+                }
+            }
+
+            showToast(isRootViewActive ? "Vista sotto terra: radici visibili" : "Vista standard attiva");
+        }
+
+        function toggleBreathingMode() {
+            isBreathingModeActive = !isBreathingModeActive;
+            breathingStartTime = Date.now();
+            const btn = document.getElementById('btn-breathing');
+            const guide = document.getElementById('breathing-guide');
+
+            if (isBreathingModeActive) {
+                if (btn) btn.classList.add('active');
+                if (guide) guide.classList.remove('hidden');
+                showToast("Modalità respiro zen (4-7-8) avviata");
+            } else {
+                if (btn) btn.classList.remove('active');
+                if (guide) guide.classList.add('hidden');
+                showToast("Modalità respiro conclusa");
+            }
+        }
+
+        /* ==========================================================================
+           7. Loop di Animazione a 60 fps (Fisica, Cinematica & Camera Easing)
+           ========================================================================== */
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isCapturingSnapshot) return;
+
+            const time = Date.now() * 0.001;
+            const hour = getEffectiveCircadianHour();
+
+            updateCircadianEnvironment();
+
+            // Calcolo ciclo respirazione 4-7-8
+            let breathingFactor = 0;
+            if (isBreathingModeActive) {
+                const elapsed = (Date.now() - breathingStartTime) / 1000;
+                const cycle = elapsed % 19.0;
+                const circle = document.getElementById('breath-circle');
+                const phaseText = document.getElementById('breath-phase-text');
+
+                if (cycle < 4.0) {
+                    const t = cycle / 4.0;
+                    breathingFactor = t * 0.5;
+                    if (circle) circle.style.transform = `scale(${1.0 + t * 0.45})`;
+                    if (phaseText) phaseText.textContent = "Inspira";
+                } else if (cycle < 11.0) {
+                    breathingFactor = 0.5;
+                    if (circle) circle.style.transform = `scale(1.45)`;
+                    if (phaseText) phaseText.textContent = "Trattieni";
+                } else {
+                    const t = (cycle - 11.0) / 8.0;
+                    breathingFactor = 0.5 * (1.0 - t);
+                    if (circle) circle.style.transform = `scale(${1.45 - t * 0.45})`;
+                    if (phaseText) phaseText.textContent = "Espira";
+                }
+            }
+
+            // Pulviscolo atmosferico dorato (Komorebi)
+            if (dustParticleSystem) {
+                const positions = dustParticleSystem.geometry.attributes.position.array;
+                for (let i = 0; i < positions.length; i += 3) {
+                    positions[i] += Math.sin(time * 0.8 + i) * 0.0015;
+                    positions[i+1] += Math.cos(time * 0.6 + i) * 0.0012;
+                    positions[i+2] += Math.sin(time * 0.5 + i) * 0.0015;
+                    if (positions[i+1] > 4.5) positions[i+1] = 0.8;
+                    if (positions[i+1] < 0.8) positions[i+1] = 4.5;
+                }
+                dustParticleSystem.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Aggiorna gocce d'acqua e particelle di fioritura
+            updateWaterParticles();
+            updateBloomParticles();
+
+            // Smorzamento impulso tattile
+            touchImpulse *= 0.92;
+
+            // Aggiornamento biologico fluido a 60 fps delle piante
+            pots.forEach(plant => {
+                if (plant && !plant.isFrozen) {
+                    plant.displayGrowth += (plant.growthProgress - plant.displayGrowth) * 0.05;
+
+                    if (plant.isRecovering) {
+                        const elapsed = (Date.now() - plant.recoveryStartTime) / 1000;
+                        const t = Math.min(1.0, elapsed / 6.0);
+                        const ease = 1 - Math.pow(1 - t, 3);
+                        plant.droopFactor = plant.recoveryStartDroop * (1 - ease);
+                        plant.colorSaturate = 0.6 + 0.4 * ease;
+                        if (t >= 1.0) plant.isRecovering = false;
+                    }
+
+                    if (plant.displayGrowth >= 10) {
+                        if (Math.abs(plant.displayGrowth - (plant.lastBuiltGrowth || 0)) > 0.25) {
+                            buildPlant3D(plant);
+                        }
+                    }
+
+                    updatePlantSway(plant, time, breathingFactor, isBreathingModeActive, hour, touchImpulse);
+                }
+            });
+
+            // Aggiorna colore e bagnatura del terreno
+            potGroups.forEach((group, idx) => {
+                if (group && group.userData) {
+                    const dirtMesh = group.userData.dirtMesh;
+                    if (dirtMesh && dirtMesh.material) {
+                        const plant = pots[idx];
+                        if (plant) {
+                            const hRatio = plant.hydration / 100.0;
+                            const dryColor = new THREE.Color('#3d3028');
+                            const wetColor = new THREE.Color('#140d0a');
+                            dirtMesh.material.color.copy(dryColor).lerp(wetColor, hRatio);
+                            dirtMesh.material.roughness = 0.95 - (hRatio * 0.35);
+                        }
+                    }
+                }
+            });
+
+            // Camera e pitch
+            currentPitch += (targetPitch - currentPitch) * 0.04;
+            potGroups.forEach((group, idx) => {
+                if (group) group.rotation.y += (potRotations[idx] - group.rotation.y) * 0.04;
+            });
+
+            let targetLookAtY = isRootViewActive ? 1.0 : (isDrawerOpen ? 1.7 : 1.6);
+            let targetRadius = isRootViewActive ? 2.8 : (isDrawerOpen ? (3.2 - detailZoomLevel) : 5.5);
+
+            let targetY = targetLookAtY + targetRadius * Math.sin(currentPitch);
+            let targetZ = targetRadius * Math.cos(currentPitch);
+            let targetX = (potGroups && potGroups[activePotIndex]) ? potGroups[activePotIndex].position.x : 0;
+
+            if (isDrawerOpen) {
+                const drawer = document.getElementById('drawer');
+                const drawerWidth = drawer ? drawer.offsetWidth : 0;
+                const frustumHeight = 2 * camera.position.z * Math.tan((camera.fov * Math.PI) / 360);
+                const unitsPerPixel = frustumHeight / window.innerHeight;
+                targetX += (drawerWidth / 2) * unitsPerPixel;
+            }
+
+            camera.position.x += (targetX - camera.position.x) * 0.04;
+            camera.position.y += (targetY - camera.position.y) * 0.04;
+            camera.position.z += (targetZ - camera.position.z) * 0.04;
+
+            if (typeof window.currentLookAtY === 'undefined') window.currentLookAtY = 1.6;
+            window.currentLookAtY += (targetLookAtY - window.currentLookAtY) * 0.04;
+            camera.lookAt(camera.position.x, window.currentLookAtY, 0);
+
+            // Spotlight segue la pianta attiva
+            let plantX = (potGroups && potGroups[activePotIndex]) ? potGroups[activePotIndex].position.x : 0;
+            if (activeSpotlight) {
+                let targetLightX = plantX + lightRelativeX;
+                activeSpotlight.position.x += (targetLightX - activeSpotlight.position.x) * 0.04;
+                activeSpotlight.target.position.set(plantX, 0.8, 0);
+            }
+
+            if (lightConeMesh && activeSpotlight) {
+                updateLightCone(activeSpotlight.position, activeSpotlight.target.position);
+                if (lightConeMaterial) {
+                    lightConeMaterial.uniforms.time.value = time;
+                    lightConeMaterial.uniforms.color.value.copy(activeSpotlight.color);
+                }
+            }
+
+            if (composer) {
+                composer.render();
+            } else {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (composer) composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        /* ==========================================================================
+           8. Motore Biologico & Simulazione Offline
+           ========================================================================== */
+        function updatePlantsState() {
+            const now = Date.now();
+            pots.forEach(plant => {
+                if (!plant || plant.isFrozen) return;
+
+                const deltaSeconds = ((now - plant.lastCheck) / 1000) * timeMultiplier;
+                plant.lastCheck = now;
+                const config = SPECIES_CONFIG[plant.specie];
+                if (!config) return;
+
+                const intensity = (plant.lightValue !== undefined ? plant.lightValue : 80) / 100;
+
+                const factorGrowth = plant.growthProgress / 100;
+                const waterLoss = deltaSeconds * (config.alpha * factorGrowth + config.beta * intensity) * 3;
+                plant.hydration = Math.max(0, plant.hydration - waterLoss);
+
+                if (plant.hydration < 15) {
+                    plant.waterNeglects += (deltaSeconds / 3600) * 0.01;
+                    plant.droopFactor = Math.min(1.0, plant.droopFactor + 0.02);
+                }
+
+                let photoEfficiency = 0;
+                if (intensity >= config.optLight.min && intensity <= config.optLight.max) {
+                    photoEfficiency = 1.0;
+                } else {
+                    const optimalCenter = (config.optLight.min + config.optLight.max) / 2;
+                    photoEfficiency = Math.max(0, 1 - Math.pow(intensity - optimalCenter, 2));
+                }
+
+                if (plant.hydration > 0 && plant.growthProgress < 100) {
+                    const growthSpeed = 0.05 * config.growthRate * photoEfficiency * (plant.hydration / 100);
+                    const lastG = plant.growthProgress;
+                    plant.growthProgress = Math.min(100, plant.growthProgress + deltaSeconds * growthSpeed);
+
+                    checkMilestoneTransitions(plant, lastG, plant.growthProgress);
+                }
+            });
+
+            saveState();
+            updateUI();
+        }
+
+        function checkMilestoneTransitions(plant, oldG, newG) {
+            let triggeredStage = null;
+            let letterText = null;
+
+            if (oldG < GROWTH_STAGE.GERMINATION && newG >= GROWTH_STAGE.GERMINATION) {
+                triggeredStage = "Germinazione";
+                letterText = `Sento l'umidità della terra che mi risveglia. Ho aperto le mie prime radichette e inizio a protendermi verso l'alto.`;
+            } else if (oldG < GROWTH_STAGE.VEGETATIVE && newG >= GROWTH_STAGE.VEGETATIVE) {
+                triggeredStage = "Fase vegetativa";
+                letterText = `Il mio fusto si è eretto oltre il terreno. Le mie prime foglie si distendono per accogliere il calore del tuo fascio di luce.`;
+            } else if (oldG < GROWTH_STAGE.BUD && newG >= GROWTH_STAGE.BUD) {
+                triggeredStage = "Stadio bocciolo";
+                letterText = `Un piccolo nodo floreale è spuntato all'apice. Conservo ogni goccia per preparare la schiusa dei miei petali.`;
+            } else if (oldG < GROWTH_STAGE.BLOOM && newG >= GROWTH_STAGE.BLOOM) {
+                triggeredStage = "Fioritura suprema";
+                triggerBloomEvent(plant);
+                return;
+            }
+
+            if (triggeredStage) {
+                plant.diary.push({
+                    stage: triggeredStage,
+                    timestamp: Date.now(),
+                    letter: letterText
+                });
+                showToast(`[${plant.name}] ha raggiunto lo stadio di: ${triggeredStage.toLowerCase()}!`);
+                setTimeout(() => {
+                    captureStageSnapshot(plant, triggeredStage);
+                }, 1000);
+            }
+        }
+
+        function checkOfflineAbsence() {
+            const now = Date.now();
+            let offlineReport = "";
+            let significantAbsence = false;
+
+            pots.forEach(plant => {
+                if (plant && !plant.isFrozen) {
+                    const elapsed = (now - plant.lastCheck) / 1000;
+                    if (elapsed > 60) {
+                        significantAbsence = true;
+                        const hours = (elapsed / 3600).toFixed(1);
+
+                        const config = SPECIES_CONFIG[plant.specie];
+                        const intensity = (plant.lightValue || 80) / 100;
+                        const waterLoss = (elapsed / 3600) * (config.alpha + config.beta * intensity) * 30;
+                        plant.hydration = Math.max(0, plant.hydration - waterLoss);
+
+                        if (plant.hydration < 15) {
+                            plant.droopFactor = Math.min(0.8, 0.2 + (elapsed / 3600) * 0.05);
+                            plant.colorSaturate = Math.max(0.4, 1.0 - (elapsed / 3600) * 0.08);
+                        }
+
+                        offlineReport += `
+                            <div class="border-b border-slate-900/60 pb-2 mb-2">
+                                <strong class="text-emerald-400">${plant.name}</strong> (${config.scientificName}):<br>
+                                • Tempo trascorso: ${hours} ore<br>
+                                • Idratazione residua: ${Math.round(plant.hydration)}%<br>
+                                • Stato: ${plant.hydration < 20 ? 'Ha sete e ti ha aspettato con pazienza' : 'Fresco e rigoglioso'}
+                            </div>
+                        `;
+                    }
+                    plant.lastCheck = now;
+                }
+            });
+
+            if (significantAbsence && offlineReport) {
+                document.getElementById('offline-report-content').innerHTML = offlineReport;
+                openOfflineModal();
+            }
+        }
+
+        /* ==========================================================================
+           9. Gesto di Annaffiatura Interattivo & Controlli
+           ========================================================================== */
+        let isWateringActive = false;
+        let wateringInterval = null;
+
+        function setupWateringButtonGesture() {
+            const btn = document.getElementById('water-button');
+            if (!btn) return;
+
+            const startWatering = (e) => {
+                e.preventDefault();
+                if (isWateringActive) return;
+                isWateringActive = true;
+                
+                wateringInterval = setInterval(() => {
+                    const plant = pots[activePotIndex];
+                    if (plant) {
+                        plant.hydration = Math.min(100.0, plant.hydration + 4.0);
+                        if (plant.droopFactor > 0.01 && !plant.isRecovering) {
+                            plant.isRecovering = true;
+                            plant.recoveryStartDroop = plant.droopFactor;
+                            plant.recoveryStartTime = Date.now();
+                        }
+                        spawnWaterDroplets(4);
+                        touchImpulse = Math.min(1.0, touchImpulse + 0.15);
+                        updateUI();
+                    }
+                }, 100);
+            };
+
+            const stopWatering = () => {
+                if (!isWateringActive) return;
+                isWateringActive = false;
+                if (wateringInterval) clearInterval(wateringInterval);
+                const plant = pots[activePotIndex];
+                if (plant) {
+                    showToast(`Hai innaffiato ${plant.name}. Il terreno è fresco e umido.`);
+                    saveState();
+                }
+            };
+
+            btn.addEventListener('mousedown', startWatering);
+            window.addEventListener('mouseup', stopWatering);
+            btn.addEventListener('touchstart', startWatering, { passive: false });
+            window.addEventListener('touchend', stopWatering);
+        }
+
+        function setupKeyboardShortcuts() {
+            window.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                switch (e.key.toLowerCase()) {
+                    case ' ':
+                        e.preventDefault();
+                        const plant = pots[activePotIndex];
+                        if (plant) {
+                            plant.hydration = Math.min(100.0, plant.hydration + 15.0);
+                            spawnWaterDroplets(10);
+                            touchImpulse = 0.5;
+                            if (plant.droopFactor > 0.01 && !plant.isRecovering) {
+                                plant.isRecovering = true;
+                                plant.recoveryStartDroop = plant.droopFactor;
+                                plant.recoveryStartTime = Date.now();
+                            }
+                            updateUI();
+                            saveState();
+                            showToast(`Hai innaffiato ${plant.name}.`);
+                        }
+                        break;
+                    case 'r':
+                        toggleRootView();
+                        break;
+                    case 'b':
+                        toggleBreathingMode();
+                        break;
+                    case 'escape':
+                        closeDrawer();
+                        closeSowingModal();
+                        closeFarewellModal();
+                        closeOfflineModal();
+                        closeLetterModal();
+                        closeDeleteConfirmModal();
+                        break;
+                    case 'arrowleft':
+                    case 'a':
+                        potRotations[activePotIndex] -= 0.1;
+                        break;
+                    case 'arrowright':
+                    case 'd':
+                        potRotations[activePotIndex] += 0.1;
+                        break;
+                    case 'arrowup':
+                    case 'w':
+                        targetPitch = Math.min(0.65, targetPitch + 0.05);
+                        break;
+                    case 'arrowdown':
+                    case 's':
+                        targetPitch = Math.max(0.05, targetPitch - 0.05);
+                        break;
+                    case '+':
+                    case '=':
+                        if (isDrawerOpen) detailZoomLevel = Math.min(3, detailZoomLevel + 0.5);
+                        break;
+                    case '-':
+                        if (isDrawerOpen) detailZoomLevel = Math.max(-2, detailZoomLevel - 0.5);
+                        break;
+                }
+            });
+        }
+
         function setupDragInteractions(container) {
             container.addEventListener('mousedown', (e) => {
-                // Non attivare il drag se l'utente clicca su elementi UI con pointer-events
                 isDragging = true;
                 previousMousePosition = { x: e.clientX, y: e.clientY };
             });
@@ -1026,18 +1615,13 @@
                 const deltaY = e.clientY - previousMousePosition.y;
                 previousMousePosition = { x: e.clientX, y: e.clientY };
 
-                // Aggiorna target rotazione vaso attivo (orizzontale)
                 potRotations[activePotIndex] += deltaX * 0.007;
-                
-                // Aggiorna target pitch verticale della telecamera
                 targetPitch = Math.max(0.05, Math.min(0.65, targetPitch + deltaY * 0.003));
+                touchImpulse = Math.min(1.0, touchImpulse + Math.abs(deltaX) * 0.01);
             });
 
-            window.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
+            window.addEventListener('mouseup', () => { isDragging = false; });
 
-            // Touch support per dispositivi mobili
             container.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 1) {
                     isDragging = true;
@@ -1053,13 +1637,11 @@
 
                 potRotations[activePotIndex] += deltaX * 0.007;
                 targetPitch = Math.max(0.05, Math.min(0.65, targetPitch + deltaY * 0.003));
+                touchImpulse = Math.min(1.0, touchImpulse + Math.abs(deltaX) * 0.01);
             }, { passive: true });
 
-            window.addEventListener('touchend', () => {
-                isDragging = false;
-            });
+            window.addEventListener('touchend', () => { isDragging = false; });
 
-            // Scroll-to-zoom nella vista dettaglio (solo quando il drawer è aperto)
             container.addEventListener('wheel', (e) => {
                 if (!isDrawerOpen) return;
                 e.preventDefault();
@@ -1068,294 +1650,9 @@
             }, { passive: false });
         }
 
-        /* Le logiche di modellazione 3D procedurale, geometrie, curve e specie
-           sono state spostate ed estese (a 10 specie totali) nel file species.js */
-
-        /* ==========================================
-           6. LOOP DI ANIMAZIONE & CINE-REGIA
-           ========================================== */
-        function animate() {
-            requestAnimationFrame(animate);
-            if (isCapturingSnapshot) return; // Evita rendering concorrenti durante gli snapshot
-
-            const time = Date.now() * 0.001;
-
-            // Animazione lucciole
-            if (particleSystem) {
-                const positions = particleSystem.geometry.attributes.position.array;
-                for(let i = 1; i < positions.length; i += 3) {
-                    positions[i] += Math.sin(time + i) * 0.0018; // Fluttuazione
-                    if(positions[i] > 5) positions[i] = 0.8;
-                }
-                particleSystem.geometry.attributes.position.needsUpdate = true;
-            }
-
-            // Animazione spline in tempo reale in base a tempo e stato
-            pots.forEach(plant => {
-                if (plant && plant.growthProgress >= 10 && !plant.isFrozen) {
-                    // Eseguiamo il calcolo della ripresa lenta nel rendering loop per movimenti fluidi
-                    if (plant.isRecovering) {
-                        const elapsed = (Date.now() - plant.recoveryStartTime) / 1000;
-                        const t = Math.min(1.0, elapsed / 60);
-                        const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
-                        plant.droopFactor = plant.recoveryStartDroop * (1 - ease);
-                        plant.colorSaturate = plant.recoveryStartSaturate + (1.0 - plant.recoveryStartSaturate) * ease;
-                        if (t >= 1.0) plant.isRecovering = false;
-                    }
-
-                    // Rigenera la spline dello stelo a 60fps per un moto sinusoidale continuo e flessibile
-                    buildPlant3D(plant);
-                }
-            });
-
-            // Aggiorna il colore e la roughness del terreno in base all'idratazione biologica
-            potGroups.forEach((group, idx) => {
-                if (group && group.userData) {
-                    const dirtMesh = group.userData.dirtMesh;
-                    if (dirtMesh && dirtMesh.material) {
-                        const plant = pots[idx];
-                        if (plant) {
-                            const hRatio = plant.hydration / 100.0;
-                            // Colore: da marrone chiaro secco (#3d3028) a marrone molto scuro umido (#120c0a)
-                            const dryColor = new THREE.Color('#3d3028');
-                            const wetColor = new THREE.Color('#120c0a');
-                            dirtMesh.material.color.copy(dryColor).lerp(wetColor, hRatio);
-                            // Roughness: da 1.0 (completamente secco e opaco) a 0.85 (umido, con una minima lucentezza)
-                            dirtMesh.material.roughness = 1.0 - (hRatio * 0.15);
-                        } else {
-                            // Default per vaso senza pianta (terreno secco)
-                            dirtMesh.material.color.setHex(0x3d3028);
-                            dirtMesh.material.roughness = 1.0;
-                        }
-                    }
-                }
-            });
-
-            // Camera vertical pitch interpolation with damping factor 0.03
-            currentPitch += (targetPitch - currentPitch) * 0.03;
-
-            // Pot rotation interpolation with damping factor 0.03
-            potGroups.forEach((group, idx) => {
-                if (group) {
-                    group.rotation.y += (potRotations[idx] - group.rotation.y) * 0.03;
-                }
-            });
-
-            // Camera morbido lag cinematografico e Zoom basato su pitch
-            let targetLookAtY = isDrawerOpen ? 1.7 : 1.6;
-            let targetRadius = isDrawerOpen ? (3.2 - detailZoomLevel) : 5.5;
-
-            let targetY = targetLookAtY + targetRadius * Math.sin(currentPitch);
-            let targetZ = targetRadius * Math.cos(currentPitch);
-            let targetX = (potGroups && potGroups[activePotIndex]) ? potGroups[activePotIndex].position.x : 0;
-            
-            if (isDrawerOpen) {
-                // Applica l'offset per centrare la pianta nell'area utile quando il drawer laterale è aperto
-                const drawer = document.getElementById('drawer');
-                const drawerWidth = drawer ? drawer.offsetWidth : 0;
-                // Calcola l'altezza visibile alla distanza Z corrente della telecamera
-                const frustumHeight = 2 * camera.position.z * Math.tan((camera.fov * Math.PI) / 360);
-                const unitsPerPixel = frustumHeight / window.innerHeight;
-                const offset3D = (drawerWidth / 2) * unitsPerPixel;
-                targetX += offset3D;
-            }
-
-            // Transizioni fluide della telecamera (X, Y, Z) con damping factor 0.03
-            camera.position.x += (targetX - camera.position.x) * 0.03;
-            camera.position.y += (targetY - camera.position.y) * 0.03;
-            camera.position.z += (targetZ - camera.position.z) * 0.03;
-
-            // Transizione fluida della Y del lookAt per inquadrare correttamente con damping factor 0.03
-            if (typeof window.currentLookAtY === 'undefined') {
-                window.currentLookAtY = 1.6;
-            }
-            window.currentLookAtY += (targetLookAtY - window.currentLookAtY) * 0.03;
-            camera.lookAt(camera.position.x, window.currentLookAtY, 0);
-
-            // Spotlight segue la pianta attiva in X (con l'eventuale inclinazione circadiana) e punta al suo vaso
-            let plantX = (potGroups && potGroups[activePotIndex]) ? potGroups[activePotIndex].position.x : 0;
-            if (activeSpotlight) {
-                let targetLightX = plantX + lightRelativeX;
-                activeSpotlight.position.x += (targetLightX - activeSpotlight.position.x) * 0.03;
-                activeSpotlight.target.position.set(plantX, 0.8, 0); // punta al centro del vaso/terra
-            }
-
-            // Aggiorna posizione, orientamento e intensità/colore del cono di luce visibile
-            if (lightConeMesh && activeSpotlight) {
-                updateLightCone(activeSpotlight.position, activeSpotlight.target.position);
-                if (lightConeMaterial) {
-                    lightConeMaterial.uniforms.time.value = time;
-                    lightConeMaterial.uniforms.color.value.copy(activeSpotlight.color);
-                }
-            }
-
-            // Renderizza tramite EffectComposer per post-processing
-            if (composer) {
-                composer.render();
-            } else {
-                renderer.render(scene, camera);
-            }
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            if (composer) {
-                composer.setSize(window.innerWidth, window.innerHeight);
-            }
-        }
-
-        /* ==========================================
-           7. MOTORE BIOLOGICO IN TEMPO REALE & SIMULATORE
-           ========================================== */
-        // Aggiorna lo stato di tutte le piante attive
-        function updatePlantsState() {
-            const now = Date.now();
-            
-            pots.forEach(plant => {
-                if (!plant) return;
-
-                if (plant.isFrozen) return; // Pianta statica nell'erbario
-
-                // Calcolo del delta-time reale
-                const deltaSeconds = ((now - plant.lastCheck) / 1000) * timeMultiplier;
-                plant.lastCheck = now;
-
-                const config = SPECIES_CONFIG[plant.specie];
-                // Usa il valore di intensità specifico della pianta corrente
-                const intensity = (plant.lightValue !== undefined ? plant.lightValue : 80) / 100;
-
-                // 1. Decadimento Idratazione (H)
-                const factorGrowth = plant.growthProgress / 100;
-                const waterLoss = deltaSeconds * (config.alpha * factorGrowth + config.beta * intensity) * 3;
-                plant.hydration = Math.max(0, plant.hydration - waterLoss);
-
-                // Se l'acqua scende a secco, si accumula trascuratezza biologica
-                if (plant.hydration < 15) {
-                    plant.waterNeglects += (deltaSeconds / 3600) * 0.01; 
-                }
-
-                // 2. Efficienza Fotosintesi (E)
-                let photoEfficiency = 0;
-                if (intensity >= config.optLight.min && intensity <= config.optLight.max) {
-                    photoEfficiency = 1.0;
-                } else {
-                    const optimalCenter = (config.optLight.min + config.optLight.max) / 2;
-                    photoEfficiency = Math.max(0, 1 - Math.pow(intensity - optimalCenter, 2));
-                }
-
-                // 3. Incremento Crescita (G)
-                if (plant.hydration > 0 && plant.growthProgress < 100) {
-                    const growthSpeed = 0.05 * config.growthRate * photoEfficiency * (plant.hydration / 100);
-                    const lastProgress = plant.growthProgress;
-                    plant.growthProgress = Math.min(100, plant.growthProgress + deltaSeconds * growthSpeed);
-
-                    checkTransitions(plant, lastProgress, plant.growthProgress);
-                }
-            });
-
-            // Persistenza nel localStorage
-            saveState();
-            // Aggiorna l'interfaccia
-            updateUI();
-        }
-
-        // Timer del ciclo biologico rimosso dal contesto globale (spostato in startApp)
-
-        // Rilevamento delle transizioni di fase biologica
-        function checkTransitions(plant, oldG, newG) {
-            let triggeredStage = null;
-            if (oldG < 20 && newG >= 20) triggeredStage = "Fase Vegetativa Iniziata";
-            if (oldG < 60 && newG >= 60) triggeredStage = "Stadio Bocciolo Formato";
-            if (oldG < 85 && newG >= 85) triggeredStage = "Fioritura Suprema";
-            if (oldG < 100 && newG >= 100) triggeredStage = "Fioritura Completa";
-
-            if (triggeredStage) {
-                plant.diary.push({
-                    stage: triggeredStage,
-                    timestamp: Date.now()
-                });
-                
-                showToast(`[${plant.name}] ha raggiunto lo stadio di: ${triggeredStage}!`);
-                
-                // Cattura automatica dello snapshot per l'erbario
-                setTimeout(() => {
-                    captureStageSnapshot(plant, triggeredStage);
-                }, 1000);
-            }
-        }
-
-        /* ==========================================
-           8. MEMORIA DI ASSENZA & RECUPERO GRADUALE
-           ========================================== */
-        // Calcola l'effetto iniziale di assenza (chiamato all'avvio dell'applicazione)
-        function initAbsenceState(plant) {
-            const timeDiff = Date.now() - plant.lastCheck;
-            const hoursAbsent = timeDiff / (1000 * 3600);
-
-            let initialDroop = 0;
-            let initialSaturate = 1.0;
-
-            if (hoursAbsent >= 12 && hoursAbsent < 36) {
-                initialDroop = 0.2;
-                initialSaturate = 0.85;
-                showToast(`[${plant.name}] ti ha aspettato.`);
-            } else if (hoursAbsent >= 36 && hoursAbsent < 72) {
-                initialDroop = 0.5;
-                initialSaturate = 0.6;
-                showToast(`[${plant.name}] ha sofferto la sete. È ancora qui.`);
-            } else if (hoursAbsent >= 72) {
-                initialDroop = 0.8;
-                initialSaturate = 0.3; // Stato di dormienza
-                showToast(`[${plant.name}] si è assopita. Aspetta solo te.`);
-            }
-
-            plant.droopFactor = initialDroop;
-            plant.colorSaturate = initialSaturate;
-        }
-
-        // Sincronizza il ritmo circadiano in base agli accessi passati
-        function recordHabitPattern() {
-            const hour = new Date().getHours();
-            let storedPatterns = JSON.parse(localStorage.getItem('habitPatterns') || '[]');
-            storedPatterns.push(hour);
-            if (storedPatterns.length > 20) storedPatterns.shift();
-            localStorage.setItem('habitPatterns', JSON.stringify(storedPatterns));
-            habitPatterns = storedPatterns;
-        }
-
-        function adaptSceneToUserHabits() {
-            if (habitPatterns.length < 5) return;
-
-            const sum = habitPatterns.reduce((a, b) => a + b, 0);
-            const avgHour = Math.round(sum / habitPatterns.length);
-
-            const displayEl = document.getElementById('time-display');
-
-            if (avgHour >= 6 && avgHour <= 10) {
-                // Routine Mattutina: Luce aurorale dorata zenitale
-                activeSpotlight.color.setHex(0xfff9d6); 
-                activeSpotlight.position.set(-0.5, 4.5, 0.6);
-                lightRelativeX = -0.5;
-                displayEl.textContent = "ATTIVO: RITMO MATTUTINO (LUCE AURORALE)";
-            } else if (avgHour >= 18 && avgHour <= 23) {
-                // Routine Serale: Luce crepuscolare ambrata zenitale
-                activeSpotlight.color.setHex(0xffbf75); 
-                activeSpotlight.position.set(0.6, 4.5, 0.6);
-                lightRelativeX = 0.6;
-                displayEl.textContent = "ATTIVO: RITMO CREPUSCOLARE (VESPERTINO)";
-            } else {
-                activeSpotlight.color.setHex(0xffffff); 
-                activeSpotlight.position.set(0.0, 4.8, 0.4);
-                lightRelativeX = 0.0;
-                displayEl.textContent = "ATTIVO: RITMO DIURNO STANDARD";
-            }
-        }
-
-        /* ==========================================
-           9. RITO DELLA SEMINA & AZIONI DI CURA
-           ========================================== */
+        /* ==========================================================================
+           10. Rito della Semina e Gestione Vasi
+           ========================================================================== */
         let selectedSowingSpeciesId = '';
 
         function populateSowingSpeciesGrid() {
@@ -1380,11 +1677,7 @@
         function openSowingModal(potIndex) {
             activePotIndex = potIndex;
             selectedSowingSpeciesId = '';
-            
-            // Popola dinamicamente i pulsanti
             populateSowingSpeciesGrid();
-            
-            // Ripuliamo l'interfaccia modale
             document.getElementById('sowing-species-preview').textContent = "Seleziona una specie per vedere le sue peculiarità biologiche.";
             document.getElementById('sowing-plant-name').value = '';
 
@@ -1401,20 +1694,16 @@
 
         function selectSowingSpecies(species) {
             selectedSowingSpeciesId = species;
-            
-            // Reset borders
             document.querySelectorAll('#sowing-species-grid button').forEach(btn => {
                 btn.style.borderColor = 'rgba(255,255,255,0.08)';
                 btn.style.backgroundColor = 'rgba(15, 19, 26, 0.4)';
             });
-            
             const selectedBtn = document.getElementById(`sow-btn-${species}`);
             if (selectedBtn) {
                 const config = SPECIES_CONFIG[species];
                 selectedBtn.style.borderColor = config.themeColor || '#10b981';
-                selectedBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                selectedBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
             }
-
             document.getElementById('sowing-species-preview').innerHTML = `
                 <strong>${SPECIES_CONFIG[species].scientificName}</strong>: ${SPECIES_CONFIG[species].description} <br>
                 <span class="text-emerald-400 font-semibold block mt-1">Fabbisogni: ${SPECIES_CONFIG[species].needs}</span>
@@ -1432,151 +1721,68 @@
                 return;
             }
 
-            // Inizializza istanza pianta
             const newPlant = new Plant(selectedSowingSpeciesId, nameInput, activePotIndex, 0);
             pots[activePotIndex] = newPlant;
-
             closeSowingModal();
 
-            // Calcola la posizione X corretta per il vaso attivo
-            const targetX = potGroups[activePotIndex] ? potGroups[activePotIndex].position.x : 0;
-
-            // Animazione fisica della caduta del seme nel vaso attivo
-            const seedGeo = new THREE.SphereGeometry(0.07, 12, 12);
-            const seedMat = new THREE.MeshStandardMaterial({ color: '#d97706', roughness: 0.6 });
-            const seed = new THREE.Mesh(seedGeo, seedMat);
-            seed.position.set(targetX, 5, 0);
-            scene.add(seed);
-
-            const startTime = Date.now();
-            function dropAnim() {
-                const elapsed = (Date.now() - startTime) / 1000;
-                if (elapsed < 1.0) {
-                    seed.position.y = 5 - (elapsed * 3.82); // Accelerazione di gravità simulata
-                    requestAnimationFrame(dropAnim);
-                } else {
-                    scene.remove(seed);
-                    // Rilascio risorse del seed mesh
-                    seedGeo.dispose();
-                    seedMat.dispose();
-
-                    // Collega il gruppo 3D al vaso tramite cache
-                    const potGroup = potGroups[activePotIndex];
-                    if (potGroup) {
-                        potGroup.add(newPlant.threeGroup);
-                        buildPlant3D(newPlant);
-                    }
-                    showToast(`Seme di ${newPlant.name} piantato! Innaffialo per svegliare le sue radici.`);
-                    saveState();
-                    generatePotSelectors();
-                    selectPot(activePotIndex);
-                }
-            }
-            dropAnim();
-        }
-
-        function waterActivePlant() {
-            const plant = pots[activePotIndex];
-            if (!plant) return;
-
-            plant.hydration = 100.0;
-            showToast(`Hai innaffiato ${plant.name}. Il terreno è perfettamente fresco.`);
-            
-            // Innesca la transizione lenta di ripresa vegetativa (60 secondi)
-            if (plant.droopFactor > 0.01) {
-                plant.isRecovering = true;
-                plant.recoveryStartDroop = plant.droopFactor;
-                plant.recoveryStartSaturate = plant.colorSaturate;
-                plant.recoveryStartTime = Date.now();
+            const potGroup = potGroups[activePotIndex];
+            if (potGroup) {
+                potGroup.add(newPlant.threeGroup);
+                buildPlant3D(newPlant, true);
             }
 
-            buildPlant3D(plant);
-            updateUI();
+            showToast(`Seme di ${newPlant.name} piantato! Innaffialo per svegliare le sue radici.`);
             saveState();
+            generatePotSelectors();
+            selectPot(activePotIndex);
         }
 
-        /* ==========================================
-           10. CATTURA DEGLI SNAPSHOT (MUSEO ARCHIVIO)
-           ========================================== */
-        function captureStageSnapshot(plant, stageName) {
-            isCapturingSnapshot = true;
-            const originalSize = new THREE.Vector2();
-            renderer.getSize(originalSize);
-
-            // Cambiamo temporaneamente la risoluzione su un rapporto quadrato per l'Erbario
-            renderer.setSize(512, 512, false);
-            
-            // Portiamo la telecamera in closeup sulla pianta
-            const targetX = potGroups[plant.potIndex] ? potGroups[plant.potIndex].position.x : 0;
-            
-            // Salva la telecamera originaria per ripristinarla
-            const originalCamPos = camera.position.clone();
-
-            camera.position.set(targetX, 2.2, 3.5);
-            camera.lookAt(targetX, 1.8, 0);
-            camera.aspect = 1.0;
-            camera.updateProjectionMatrix();
-
-            // Render
-            if (composer) {
-                composer.setSize(512, 512);
-                composer.render();
-            } else {
-                renderer.render(scene, camera);
-            }
-
-            // Generiamo l'immagine base64 compressa come JPEG (0.7 di qualità) per risparmiare localStorage
-            const base64 = renderer.domElement.toDataURL('image/jpeg', 0.7);
-
-            // Ripristiniamo lo stato originario della telecamera, del renderer e del composer
-            renderer.setSize(originalSize.x, originalSize.y);
-            if (composer) {
-                composer.setSize(originalSize.x, originalSize.y);
-            }
-            camera.aspect = originalSize.x / originalSize.y;
-            camera.updateProjectionMatrix();
-            
-            camera.position.copy(originalCamPos);
-            camera.lookAt(camera.position.x, 1.5, 0);
-
-            // Archiviamo lo snapshot
-            plant.snapshots.push({
-                stage: stageName,
-                imageData: base64
-            });
-
-            saveState();
-            isCapturingSnapshot = false;
+        /* ==========================================================================
+           11. Lettere Narrative & Modali di Lettura
+           ========================================================================== */
+        function openLetterModal(title, text) {
+            document.getElementById('letter-modal-title').textContent = title;
+            document.getElementById('letter-modal-content').textContent = `"${text}"`;
+            const modal = document.getElementById('letter-modal');
+            modal.classList.remove('pointer-events-none');
+            modal.classList.add('opacity-100');
         }
 
-        /* ==========================================
-           11. LETTERA DI ADDIO & CHIUSURA CICLO
-           ========================================== */
+        function closeLetterModal() {
+            const modal = document.getElementById('letter-modal');
+            modal.classList.add('pointer-events-none');
+            modal.classList.remove('opacity-100');
+        }
+
+        function openOfflineModal() {
+            const modal = document.getElementById('offline-modal');
+            modal.classList.remove('pointer-events-none');
+            modal.classList.add('opacity-100');
+        }
+
+        function closeOfflineModal() {
+            const modal = document.getElementById('offline-modal');
+            modal.classList.add('pointer-events-none');
+            modal.classList.remove('opacity-100');
+        }
+
+        /* ==========================================================================
+           12. Lettera di Congedo & Erbario (Rito di Essiccazione)
+           ========================================================================== */
         function openFarewellModal() {
             const plant = pots[activePotIndex];
             if (!plant) return;
 
-            document.getElementById('farewell-title-name').textContent = `${plant.name} ti ha scritto una lettera...`;
-            
-            const neglectCount = Math.floor(plant.waterNeglects * 24); // ore stimate a secco
-            let letter = `Mio caro custode, <br><br>
-                Sento che le mie foglie si sono quietate nel loro cammino verso lo spotlight, e i miei petali hanno ormai completato lo splendore che avevi preparato per me. <br>`;
-            
-            if (neglectCount === 0) {
-                letter += `Mi hai accudito con premura e costanza ad ogni sorgere del sole. Non mi è mai mancato un goccio d'acqua, e sono fiorita rigogliosa e forte grazie al tuo calore.`;
-            } else if (neglectCount > 0 && neglectCount <= 12) {
-                letter += `Ti ricordi? C'è stato qualche momento in cui il mio terreno è rimasto arido e ho dovuto resistere a secco... Ma fa parte del nostro cammino. Sono fiorita lo stesso, felice di attenderti.`;
-            } else {
-                letter += `Hai avuto molte cose da fare, e per lunghe ore ho vacillato nella siccità, temendo di addormentarmi... Ma sapevo che saresti tornato. Ho conservato le mie ultime forze per mostrarti questo fiore prima di finire il ciclo.`;
-            }
+            document.getElementById('farewell-title-name').textContent = `${plant.name} ti scrive...`;
+            document.getElementById('farewell-signature').textContent = `— ${plant.name}`;
 
-            letter += `<br><br>Grazie per avermi dato un nome e avermi reso parte della tua routine. Le mie radici riposano serene.`;
+            let letter = `Mio caro custode, <br><br>
+                Sento che le mie foglie si sono quietate nel loro cammino verso la luce, e i miei petali hanno ormai completato lo splendore che avevi preparato per me.<br><br>
+                Mi hai accudito con premura. Grazie per avermi donato un nome e avermi reso parte della tua routine. Le mie radici riposano serene.`;
 
             document.getElementById('farewell-letter-text').innerHTML = letter;
-
             const startFormatted = new Date(plant.creationDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
             document.getElementById('farewell-stat-start').textContent = startFormatted;
-
             const durationHrs = Math.round((Date.now() - plant.creationDate) / (1000 * 3600));
             document.getElementById('farewell-stat-duration').textContent = `${durationHrs} ore complessive`;
 
@@ -1595,61 +1801,144 @@
             const plant = pots[activePotIndex];
             if (!plant) return;
 
-            // Limite capienza erbario
             if (archivedPlants.length >= 12) {
-                showToast("L'erbario è pieno. Per fare spazio a nuova vita, rimuovi una vecchia teca.");
+                showToast("L'erbario è pieno (12/12). Esegui il rito di essiccazione per liberare spazio.");
                 closeFarewellModal();
                 return;
             }
 
             plant.isFrozen = true;
-            captureStageSnapshot(plant, "Splendore Supremo (Archiviata)");
+            captureStageSnapshot(plant, "Splendore supremo");
 
-            // Rimuove la pianta 3D dal vaso attivo liberando le risorse
             const potGroup = potGroups[activePotIndex];
             if (potGroup) {
                 disposeHierarchy(plant.threeGroup);
                 potGroup.remove(plant.threeGroup);
             }
 
-            // Spostiamo nell'Erbario
             archivedPlants.push(plant);
-            pots[activePotIndex] = null; // Svuotiamo il vaso attivo
+            pots[activePotIndex] = null;
 
             saveState();
             closeFarewellModal();
             closeDrawer();
             generatePotSelectors();
             selectPot(activePotIndex);
-            showToast(`[${plant.name}] è ora custodita per sempre nell'Erbario.`);
+            showToast(`[${plant.name}] è ora custodita per sempre nell'erbario.`);
         }
 
-        function removeActivePlant() {
+        let pendingDeleteAction = null;
+        function promptRemoveActivePlant() {
             const plant = pots[activePotIndex];
             if (!plant) return;
-
-            pots[activePotIndex] = null;
-            
-            // Utilizza la cache potGroups e libera le risorse del gruppo 3D
-            const potGroup = potGroups[activePotIndex];
-            if (potGroup) {
-                disposeHierarchy(plant.threeGroup);
-                potGroup.remove(plant.threeGroup);
-            }
-
-            saveState();
-            closeFarewellModal();
-            closeDrawer();
-            generatePotSelectors();
-            selectPot(activePotIndex);
-            showToast("Il vaso è pronto per accogliere un nuovo seme.");
+            pendingDeleteAction = () => {
+                pots[activePotIndex] = null;
+                const potGroup = potGroups[activePotIndex];
+                if (potGroup) {
+                    disposeHierarchy(plant.threeGroup);
+                    potGroup.remove(plant.threeGroup);
+                }
+                saveState();
+                closeFarewellModal();
+                closeDrawer();
+                generatePotSelectors();
+                selectPot(activePotIndex);
+                showToast("Il vaso è pronto per accogliere un nuovo seme.");
+            };
+            document.getElementById('delete-confirm-text').textContent = `Sei sicuro di volerti disfare di ${plant.name}? Il vaso tornerà vuoto.`;
+            openDeleteConfirmModal();
         }
 
-        /* ==========================================
-           12. ERBARIO VIRTUALI (IL MUSEO DELL'UTENTE)
-           ========================================== */
-        let isErbarioOpen = false;
+        function promptDeleteArchivedPlant() {
+            if (selectedArchivedIndex === -1) return;
+            const plant = archivedPlants[selectedArchivedIndex];
+            pendingDeleteAction = () => {
+                archivedPlants.splice(selectedArchivedIndex, 1);
+                saveState();
+                closeErbarioDetail();
+                renderErbarioMuseum();
+                showToast("Ricordo rimosso permanentemente dall'erbario.");
+            };
+            document.getElementById('delete-confirm-text').textContent = `Vuoi rimuovere permanentemente ${plant.name} dall'erbario?`;
+            openDeleteConfirmModal();
+        }
 
+        function promptDryingRitual() {
+            if (selectedArchivedIndex === -1) return;
+            const plant = archivedPlants[selectedArchivedIndex];
+            memoryTokens.push({
+                name: plant.name,
+                specie: plant.specie,
+                date: plant.creationDate
+            });
+            archivedPlants.splice(selectedArchivedIndex, 1);
+            saveState();
+            closeErbarioDetail();
+            renderErbarioMuseum();
+            showToast(`Rito di essiccazione compiuto. L'essenza di [${plant.name}] è ora un seme aureo del ricordo.`);
+        }
+
+        function openDeleteConfirmModal() {
+            const modal = document.getElementById('delete-confirm-modal');
+            modal.classList.remove('pointer-events-none');
+            modal.classList.add('opacity-100');
+        }
+
+        function closeDeleteConfirmModal() {
+            const modal = document.getElementById('delete-confirm-modal');
+            modal.classList.add('pointer-events-none');
+            modal.classList.remove('opacity-100');
+            pendingDeleteAction = null;
+        }
+
+        function executeDeletePlant() {
+            if (pendingDeleteAction) pendingDeleteAction();
+            closeDeleteConfirmModal();
+        }
+
+        /* ==========================================================================
+           13. Snapshot e Rendering Erbario
+           ========================================================================== */
+        function captureStageSnapshot(plant, stageName) {
+            isCapturingSnapshot = true;
+            const originalSize = new THREE.Vector2();
+            renderer.getSize(originalSize);
+
+            renderer.setSize(512, 512, false);
+            const targetX = potGroups[plant.potIndex] ? potGroups[plant.potIndex].position.x : 0;
+            const originalCamPos = camera.position.clone();
+
+            camera.position.set(targetX, 2.2, 3.5);
+            camera.lookAt(targetX, 1.8, 0);
+            camera.aspect = 1.0;
+            camera.updateProjectionMatrix();
+
+            if (composer) {
+                composer.setSize(512, 512);
+                composer.render();
+            } else {
+                renderer.render(scene, camera);
+            }
+
+            const base64 = renderer.domElement.toDataURL('image/jpeg', 0.7);
+
+            renderer.setSize(originalSize.x, originalSize.y);
+            if (composer) composer.setSize(originalSize.x, originalSize.y);
+            camera.aspect = originalSize.x / originalSize.y;
+            camera.updateProjectionMatrix();
+            camera.position.copy(originalCamPos);
+            camera.lookAt(camera.position.x, 1.5, 0);
+
+            plant.snapshots.push({
+                stage: stageName,
+                imageData: base64
+            });
+
+            saveState();
+            isCapturingSnapshot = false;
+        }
+
+        let isErbarioOpen = false;
         function toggleErbario() {
             const screen = document.getElementById('erbario-screen');
             isErbarioOpen = !isErbarioOpen;
@@ -1667,15 +1956,14 @@
         function renderErbarioMuseum() {
             const container = document.getElementById('erbario-grid-container');
             container.innerHTML = '';
-
-            document.getElementById('erbario-capacity-text').textContent = `${archivedPlants.length}/12 Piante`;
+            document.getElementById('erbario-capacity-text').textContent = `${archivedPlants.length}/12 piante`;
 
             if (archivedPlants.length === 0) {
                 container.innerHTML = `
                     <div class="text-center w-full max-w-md mx-auto py-12 text-slate-500">
                         <span class="text-5xl block mb-3">🍂</span>
-                        <h4 class="text-sm tracking-widest uppercase font-semibold">Teca Museale Vuota</h4>
-                        <p class="text-xs italic mt-1 leading-relaxed">Nessun ricordo custodito. Accudisci una pianta fino al completamento e congelala per conservarla qui.</p>
+                        <h4 class="text-sm tracking-widest uppercase font-semibold">Teca museale vuota</h4>
+                        <p class="text-xs italic mt-1 leading-relaxed">Nessun ricordo custodito. Accudisci una pianta fino al completamento e conservala qui.</p>
                     </div>
                 `;
                 return;
@@ -1683,7 +1971,6 @@
 
             archivedPlants.forEach((plant, idx) => {
                 const latestSnapshot = plant.snapshots && plant.snapshots.length > 0 ? plant.snapshots[plant.snapshots.length - 1].imageData : '';
-                
                 const pedestal = document.createElement('div');
                 pedestal.className = "snap-center shrink-0 w-64 bg-slate-900/10 border border-slate-900 rounded-3xl p-4 flex flex-col justify-between hover:border-emerald-500/20 transition-all cursor-pointer shadow-xl";
                 pedestal.onclick = () => openErbarioDetail(idx);
@@ -1691,7 +1978,7 @@
                 pedestal.innerHTML = `
                     <div class="space-y-4">
                         <div class="aspect-square w-full rounded-2xl bg-slate-950 overflow-hidden relative border border-slate-900/60">
-                            ${latestSnapshot ? `<img src="${latestSnapshot}" class="w-full h-full object-cover">` : '<div class="w-full h-full flex items-center justify-center text-slate-800 text-xs">Senza Ricordo Visivo</div>'}
+                            ${latestSnapshot ? `<img src="${latestSnapshot}" class="w-full h-full object-cover" alt="${plant.name}">` : '<div class="w-full h-full flex items-center justify-center text-slate-800 text-xs">Senza ricordo visivo</div>'}
                             <span class="absolute top-2 right-2 bg-slate-950/80 text-[7px] py-1 px-2 rounded-full border border-slate-900 text-emerald-400 font-bold uppercase tracking-widest">${plant.specie}</span>
                         </div>
                         <div class="text-center">
@@ -1700,7 +1987,7 @@
                         </div>
                     </div>
                     <div class="mt-4 border-t border-slate-950 pt-3 text-[9px] text-slate-500 flex justify-between items-center">
-                        <span>DETTAGLI TECA</span>
+                        <span>Dettagli teca</span>
                         <span class="text-emerald-400 font-bold uppercase tracking-widest">Esamina</span>
                     </div>
                 `;
@@ -1709,7 +1996,6 @@
         }
 
         let selectedArchivedIndex = -1;
-
         function openErbarioDetail(idx) {
             selectedArchivedIndex = idx;
             const plant = archivedPlants[idx];
@@ -1727,14 +2013,13 @@
                 imgEl.style.display = 'none';
             }
 
-            // Cronistoria eventi dell'erbario
             const diaryEl = document.getElementById('erb-det-diary');
             diaryEl.innerHTML = '';
             plant.diary.forEach(event => {
                 const date = new Date(event.timestamp).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                 diaryEl.innerHTML += `
                     <div class="flex justify-between items-center py-1.5 border-b border-slate-900/60">
-                        <span class="text-slate-350">${event.stage}</span>
+                        <span class="text-slate-300">${event.stage}</span>
                         <span class="text-[9px] text-slate-500">${date}</span>
                     </div>
                 `;
@@ -1747,16 +2032,6 @@
             document.getElementById('erbario-detail-panel').classList.add('hidden');
         }
 
-        function deleteArchivedPlant() {
-            if (selectedArchivedIndex === -1) return;
-            archivedPlants.splice(selectedArchivedIndex, 1);
-            saveState();
-            closeErbarioDetail();
-            renderErbarioMuseum();
-            showToast("Ricordo rimosso permanentemente dall'Erbario.");
-        }
-
-        // Esporta ricordo ad alta risoluzione (1200x1200px) per salvataggio locale
         function exportPlantCard() {
             const plant = archivedPlants[selectedArchivedIndex];
             if (!plant) return;
@@ -1766,24 +2041,20 @@
             canvas.height = 1200;
             const ctx = canvas.getContext('2d');
 
-            // Sfondo grigio fumo / ardesia zen
             const grad = ctx.createRadialGradient(600, 600, 100, 600, 600, 800);
             grad.addColorStop(0, '#111827');
             grad.addColorStop(1, '#030712');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 1200, 1200);
 
-            // Cornice minimale sottile
-            ctx.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.2)';
             ctx.lineWidth = 2;
             ctx.strokeRect(40, 40, 1120, 1120);
 
             const img = new Image();
             img.onload = function() {
-                // Snapshot della pianta centrato
                 ctx.drawImage(img, 350, 180, 500, 500);
 
-                // Dettagli in tipografia pulita
                 ctx.textAlign = 'center';
                 ctx.fillStyle = '#ffffff';
                 ctx.font = "300 48px 'Outfit', sans-serif";
@@ -1793,39 +2064,25 @@
                 ctx.font = "italic 26px 'Plus Jakarta Sans', sans-serif";
                 ctx.fillText(SPECIES_CONFIG[plant.specie].scientificName, 600, 815);
 
-                // Linea decorativa
-                ctx.fillStyle = 'rgba(16, 185, 129, 0.3)';
-                ctx.fillRect(520, 855, 160, 1.5);
-
-                // Data di semina
                 const dateStr = new Date(plant.creationDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
                 ctx.fillStyle = '#94a3b8';
                 ctx.font = "300 18px 'Outfit', sans-serif";
-                ctx.fillText(`COLTIVATA ED ARCHIVIATA IL: ${dateStr.toUpperCase()}`, 600, 910);
+                ctx.fillText(`Coltivata ed archiviata il: ${dateStr}`, 600, 910);
 
-                // Payoff zen
-                ctx.fillStyle = '#64748b';
-                ctx.font = "italic 20px 'Plus Jakarta Sans', sans-serif";
-                ctx.fillText(`"Un legame intimo in tempo reale. Custodito nelle radici."`, 600, 970);
-
-                // Download
                 const link = document.createElement('a');
                 link.download = `Radici_${plant.name}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             };
-            
+
             const latestSnapshot = plant.snapshots && plant.snapshots.length > 0 ? plant.snapshots[plant.snapshots.length - 1].imageData : '';
-            if (latestSnapshot) {
-                img.src = latestSnapshot;
-            } else {
-                showToast("Snapshot non disponibile per l'esportazione.");
-            }
+            if (latestSnapshot) img.src = latestSnapshot;
+            else showToast("Snapshot non disponibile per l'esportazione.");
         }
 
-        /* ==========================================
-           13. INTERFACCIA UTENTE & STATE PERSISTENCE
-           ========================================== */
+        /* ==========================================================================
+           14. Interfaccia Utente, Selettori & Persistenza
+           ========================================================================== */
         function generatePotSelectors() {
             const container = document.getElementById('pot-selectors-container');
             container.innerHTML = '';
@@ -1841,7 +2098,7 @@
                     const emoji = SPECIES_CONFIG[plant.specie] ? SPECIES_CONFIG[plant.specie].emoji : '🌸';
                     btn.innerHTML = `<span class="text-sm">${emoji}</span> <strong>${plant.name}</strong> <span class="text-[9px] text-slate-500 uppercase">${plant.specie}</span>`;
                 } else {
-                    btn.innerHTML = `<span class="text-sm">🌱</span> <span class="text-slate-400 font-light">Vaso Vuoto</span>`;
+                    btn.innerHTML = `<span class="text-sm">🌱</span> <span class="text-slate-400 font-light">Vaso vuoto</span>`;
                 }
                 container.appendChild(btn);
             }
@@ -1849,87 +2106,37 @@
 
         function selectPot(index) {
             activePotIndex = index;
-
-            for (let i = 0; i < 1; i++) {
-                const selector = document.getElementById(`pot-selector-${i}`);
-                if (selector) {
-                    if (i === index) {
-                        selector.className = selector.className.replace('border-slate-900', 'border-emerald-500/60 bg-slate-950/80');
-                    } else {
-                        selector.className = selector.className.replace('border-emerald-500/60 bg-slate-950/80', 'border-slate-900');
-                    }
-                }
-            }
-
             const plant = pots[index];
             if (plant) {
-                // Calibrazione della luce per la pianta selezionata
                 const val = plant.lightValue !== undefined ? plant.lightValue : 80;
                 document.getElementById('light-slider').value = val;
                 document.getElementById('light-val').textContent = `${val}%`;
-                if (activeSpotlight) {
-                    activeSpotlight.intensity = (val / 100) * 10.0;
-                }
-                if (lightConeMaterial) {
-                    lightConeMaterial.uniforms.intensity.value = (val / 100) * 0.12;
-                }
-                
-                // Aggiorna l'interfaccia se la barra laterale è già aperta
-                if (isDrawerOpen) {
-                    // Nasconde gli altri vasi per focalizzarsi su quello selezionato
-                    if (potGroups) {
-                        potGroups.forEach((group, idx) => {
-                            if (group) {
-                                group.visible = (idx === index);
-                            }
-                        });
-                    }
-                    updateUI();
-                }
+                if (activeSpotlight) activeSpotlight.intensity = (val / 100) * 10.0;
+                if (lightConeMaterial) lightConeMaterial.uniforms.intensity.value = (val / 100) * 0.14;
+                if (isDrawerOpen) updateUI();
             } else {
-                // Livelli luce di default per vaso vuoto
                 document.getElementById('light-slider').value = 80;
                 document.getElementById('light-val').textContent = `80%`;
-                if (activeSpotlight) {
-                    activeSpotlight.intensity = 0.8 * 10.0;
-                }
-                if (lightConeMaterial) {
-                    lightConeMaterial.uniforms.intensity.value = 0.8 * 0.12;
-                }
                 closeDrawer();
                 openSowingModal(index);
             }
         }
 
-        // Toggles the drawer manually
+        let isDrawerOpen = false;
         function toggleDrawer() {
             const plant = pots[activePotIndex];
             if (!plant) {
                 showToast("Seleziona una pianta attiva per aprirne i dettagli.");
                 return;
             }
-            if (isDrawerOpen) {
-                closeDrawer();
-            } else {
-                openDrawer();
-            }
+            if (isDrawerOpen) closeDrawer();
+            else openDrawer();
         }
 
-        let isDrawerOpen = false;
         function openDrawer() {
             const drawer = document.getElementById('drawer');
             drawer.classList.remove('translate-x-full');
             isDrawerOpen = true;
-
-            // Nascondiamo gli altri vasi/piante nella scena per fare focus su quella attiva
-            if (potGroups) {
-                potGroups.forEach((group, idx) => {
-                    if (group) {
-                        group.visible = (idx === activePotIndex);
-                    }
-                });
-            }
-
             updateUI();
         }
 
@@ -1937,16 +2144,7 @@
             const drawer = document.getElementById('drawer');
             drawer.classList.add('translate-x-full');
             isDrawerOpen = false;
-            detailZoomLevel = 0; // Reset zoom dettaglio
-
-            // Ripristiniamo la visibilità di tutti i vasi/piante
-            if (potGroups) {
-                potGroups.forEach(group => {
-                    if (group) {
-                        group.visible = true;
-                    }
-                });
-            }
+            detailZoomLevel = 0;
         }
 
         function switchTab(tabId) {
@@ -1973,17 +2171,10 @@
             const config = SPECIES_CONFIG[plant.specie];
             document.getElementById('drawer-plant-specie').textContent = config.scientificName;
 
-            // Monitor Tab
             const growthInt = Math.round(plant.growthProgress);
             document.getElementById('plant-growth-label').textContent = `${growthInt}%`;
-            
-            let stageStr = "Germinazione";
-            if (plant.growthProgress >= 20 && plant.growthProgress < 60) stageStr = "Fase Vegetativa";
-            if (plant.growthProgress >= 60 && plant.growthProgress < 85) stageStr = "Stadio Bocciolo";
-            if (plant.growthProgress >= 85) stageStr = "Fioritura Suprema";
-            document.getElementById('plant-stage-label').textContent = stageStr;
+            document.getElementById('plant-stage-label').textContent = getStageName(plant.growthProgress);
 
-            // Barra idratazione
             const hydInt = Math.round(plant.hydration);
             document.getElementById('hydration-val').textContent = `${hydInt}%`;
             const hBar = document.getElementById('hydration-bar');
@@ -1998,7 +2189,6 @@
                 document.getElementById('hydration-val').className = "font-medium text-blue-400";
             }
 
-            // Fotosintesi attuale
             const intensity = parseFloat(document.getElementById('light-slider').value) / 100;
             let photoEfficiency = 0;
             if (intensity >= config.optLight.min && intensity <= config.optLight.max) {
@@ -2010,37 +2200,38 @@
             document.getElementById('photo-efficiency-val').textContent = `${photoEfficiency}%`;
             document.getElementById('photo-efficiency-bar').style.width = `${photoEfficiency}%`;
 
-            // Profilo Botanico Tab
             document.getElementById('bio-scientific-name').textContent = config.scientificName;
             document.getElementById('bio-description').textContent = config.description;
             document.getElementById('bio-needs').textContent = config.needs;
 
-            // Diario mini eventi
             const miniDiary = document.getElementById('mini-diary-list');
             miniDiary.innerHTML = '';
-            plant.diary.forEach(e => {
+            plant.diary.forEach((e, idx) => {
                 const date = new Date(e.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-                miniDiary.innerHTML += `<div><span class="text-emerald-400">[${date}]</span> ${e.stage}</div>`;
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center py-1 border-b border-slate-900/60";
+                item.innerHTML = `
+                    <div>
+                        <span class="text-emerald-400">[${date}]</span>
+                        <span>${e.stage}</span>
+                    </div>
+                    ${e.letter ? `<button onclick="openLetterModal('${e.stage}', '${e.letter.replace(/'/g, "\\'")}')" class="text-[8px] px-2 py-0.5 rounded border border-slate-800 text-emerald-300 hover:border-emerald-500">Leggi</button>` : ''}
+                `;
+                miniDiary.appendChild(item);
             });
 
-            // Mostriamo il tasto completamento ciclo
-            if (plant.growthProgress >= 100) {
+            if (plant.growthProgress >= GROWTH_STAGE.BLOOM) {
                 document.getElementById('completion-action-container').classList.remove('hidden');
             } else {
                 document.getElementById('completion-action-container').classList.add('hidden');
             }
         }
 
-        // Slider luce
         document.getElementById('light-slider').addEventListener('input', function(e) {
             const val = parseInt(e.target.value);
             document.getElementById('light-val').textContent = `${val}%`;
-            if (activeSpotlight) {
-                activeSpotlight.intensity = (val / 100) * 10.0;
-            }
-            if (lightConeMaterial) {
-                lightConeMaterial.uniforms.intensity.value = (val / 100) * 0.12;
-            }
+            if (activeSpotlight) activeSpotlight.intensity = (val / 100) * 10.0;
+            if (lightConeMaterial) lightConeMaterial.uniforms.intensity.value = (val / 100) * 0.14;
             const plant = pots[activePotIndex];
             if (plant) {
                 plant.lightValue = val;
@@ -2049,115 +2240,39 @@
             }
         });
 
-        // Persistenza
         function saveState() {
             try {
                 localStorage.setItem('pots', JSON.stringify(pots));
                 localStorage.setItem('archivedPlants', JSON.stringify(archivedPlants));
                 localStorage.setItem('potRotations', JSON.stringify(potRotations));
-            } catch (e) {
-                // Ignora sandbox locali
-            }
+                localStorage.setItem('memoryTokens', JSON.stringify(memoryTokens));
+            } catch (e) {}
         }
 
-        // Caricamento persistito con SIMULATORE DISCRETO OFF-LINE (step 15 minuti)
         function loadState() {
             try {
                 const rawPots = localStorage.getItem('pots');
                 const rawArch = localStorage.getItem('archivedPlants');
                 const rawRots = localStorage.getItem('potRotations');
+                const rawTokens = localStorage.getItem('memoryTokens');
 
-                if (rawRots) {
-                    potRotations = JSON.parse(rawRots);
-                    if (potRotations.length > 1) {
-                        potRotations = potRotations.slice(0, 1);
-                    }
-                }
+                if (rawRots) potRotations = JSON.parse(rawRots).slice(0, 1);
+                if (rawTokens) memoryTokens = JSON.parse(rawTokens);
 
                 if (rawPots) {
-                    const parsed = JSON.parse(rawPots);
-                    pots = parsed.map(p => p ? Plant.fromJSON(p) : null);
-                    if (pots.length > 1) {
-                        pots = pots.slice(0, 1);
-                    }
+                    pots = JSON.parse(rawPots).map(p => p ? Plant.fromJSON(p) : null).slice(0, 1);
                     if (pots[0]) pots[0].potIndex = 0;
                 } else {
-                    // Pre-popolamento vasetti per test
-                    pots = [
-                        new Plant('orchidea', 'Selene', 0, 80)
-                    ];
-                    pots[0].diary.push({ stage: "Fase Vegetativa Iniziata", timestamp: Date.now() - 3600*24*1000 });
-                    pots[0].diary.push({ stage: "Stadio Bocciolo Formato", timestamp: Date.now() - 3600*12*1000 });
+                    pots = [new Plant('orchidea', 'Komorebi', 0, 45)];
                 }
 
                 if (rawArch) {
                     archivedPlants = JSON.parse(rawArch).map(p => Plant.fromJSON(p));
                 }
             } catch (e) {
-                // Fallback in RAM
-                pots = [
-                    new Plant('orchidea', 'Selene', 0, 80)
-                ];
+                pots = [new Plant('orchidea', 'Komorebi', 0, 45)];
             }
-
-            // Calcolo simulazione biologica offline con delta-time a step di 15 min
-            const now = Date.now();
-            pots.forEach(plant => {
-                if (plant && !plant.isFrozen) {
-                    const timeElapsed = (now - plant.lastCheck) / 1000; // secondi trascorsi offline
-                    
-                    if (timeElapsed > 15) {
-                        // Inizializziamo gli effetti dell'assenza biologica
-                        initAbsenceState(plant);
-
-                        // Eseguiamo il ciclo incrementale di 15 minuti (900 secondi)
-                        let remaining = timeElapsed;
-                        const step = 900; 
-                        const intensity = (plant.lightValue !== undefined ? plant.lightValue : 80) / 100;
-                        const config = SPECIES_CONFIG[plant.specie];
-                        
-                        let stepsSimulated = 0;
-                        const maxSteps = 1000; // Limite di sicurezza per evitare lag estremi
-                        
-                        while (remaining > 0 && stepsSimulated < maxSteps) {
-                            const dt = Math.min(remaining, step);
-                            
-                            // 1. Perdita d'acqua cumulativa
-                            const factorGrowth = plant.growthProgress / 100;
-                            const waterLoss = dt * (config.alpha * factorGrowth + config.beta * intensity) * 3;
-                            plant.hydration = Math.max(0, plant.hydration - waterLoss);
-                            
-                            if (plant.hydration < 15) {
-                                plant.waterNeglects += (dt / 3600) * 0.01;
-                            }
-                            
-                            // 2. Fotosintesi
-                            let photoEfficiency = 0;
-                            if (intensity >= config.optLight.min && intensity <= config.optLight.max) {
-                                photoEfficiency = 1.0;
-                            } else {
-                                const optimalCenter = (config.optLight.min + config.optLight.max) / 2;
-                                photoEfficiency = Math.max(0, 1 - Math.pow(intensity - optimalCenter, 2));
-                            }
-                            
-                            // 3. Crescita solo se c'è acqua
-                            if (plant.hydration > 0 && plant.growthProgress < 100) {
-                                const growthSpeed = 0.05 * config.growthRate * photoEfficiency * (plant.hydration / 100);
-                                plant.growthProgress = Math.min(100, plant.growthProgress + dt * growthSpeed);
-                            }
-                            
-                            remaining -= dt;
-                            stepsSimulated++;
-                        }
-                    }
-                    
-                    // Sincronizza l'ultimo controllo ad ora
-                    plant.lastCheck = now;
-                }
-            });
-            saveState();
         }
-
 
         function showToast(text) {
             const el = document.getElementById('empathy-toast');
@@ -2168,7 +2283,7 @@
             setTimeout(() => {
                 el.classList.add('opacity-0', '-translate-y-4');
                 el.classList.remove('opacity-100', 'translate-y-0');
-            }, 4500);
+            }, 3500);
         }
     </script>
 </body>
